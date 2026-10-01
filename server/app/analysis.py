@@ -301,18 +301,30 @@ def summary(study_id: str, now_ms: int | None = None) -> dict[str, Any]:
         types=["heart_rate"], limit=2_000,
     )
     ibi_values: list[float] = []
+    squared_differences: list[float] = []
+    previous_ibi = None
+    previous_ts = None
     for e in recent_hr_events:
+        if previous_ts is not None and e["ts_ms"] - previous_ts > 10_000:
+            previous_ibi = None
+        previous_ts = e["ts_ms"]
         vals = e["payload"].get("ibi_ms")
-        statuses = e["payload"].get("ibi_status") or []
-        if isinstance(vals, list):
-            for idx, val in enumerate(vals):
-                ok = idx >= len(statuses) or statuses[idx] == 0
-                if ok and isinstance(val, (int, float)) and 300 <= float(val) <= 2000:
-                    ibi_values.append(float(val))
-    rmssd = None
-    if len(ibi_values) >= 3:
-        diffs = [ibi_values[i] - ibi_values[i - 1] for i in range(1, len(ibi_values))]
-        rmssd = round(math.sqrt(sum(d * d for d in diffs) / len(diffs)), 1)
+        statuses = e["payload"].get("ibi_status")
+        if not isinstance(vals, list) or not isinstance(statuses, list):
+            previous_ibi = None
+            continue
+        for idx, val in enumerate(vals):
+            ok = idx < len(statuses) and statuses[idx] == 0
+            if ok and isinstance(val, (int, float)) and 300 <= float(val) <= 2000:
+                ibi = float(val)
+                ibi_values.append(ibi)
+                if previous_ibi is not None:
+                    squared_differences.append((ibi - previous_ibi) ** 2)
+                previous_ibi = ibi
+            else:
+                # Never calculate adjacent-beat differences across invalid/missing beats.
+                previous_ibi = None
+    rmssd = round(math.sqrt(statistics.mean(squared_differences)), 1) if len(squared_differences) >= 2 else None
 
     acute_score, acute_domains = _domain_change_indices(acute_z)
     baseline_score, baseline_domains = _domain_change_indices(baseline_z)

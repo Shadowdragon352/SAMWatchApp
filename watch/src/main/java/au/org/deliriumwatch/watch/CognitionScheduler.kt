@@ -18,7 +18,7 @@ object CognitionScheduler {
         parsed.forEachIndexed { idx,(h,m) ->
             var z=ZonedDateTime.now().withHour(h).withMinute(m).withSecond(0).withNano(0)
             if(!z.isAfter(ZonedDateTime.now())) z=z.plusDays(1)
-            alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP,z.toInstant().toEpochMilli(),AlarmManager.INTERVAL_DAY,pending(context,idx))
+            alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,z.toInstant().toEpochMilli(),pending(context,idx))
         }
     }
     private fun pending(context:Context,id:Int)=PendingIntent.getBroadcast(context,9000+id,Intent(context,CognitionPromptReceiver::class.java).putExtra("prompt_id",id),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)

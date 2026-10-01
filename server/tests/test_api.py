@@ -1,14 +1,10 @@
 from __future__ import annotations
 import os, tempfile, uuid
-fd, path=tempfile.mkstemp(suffix='.db'); os.close(fd)
-os.environ['DELIRIUMWATCH_DB']=path
-os.environ['DELIRIUMWATCH_TOKEN']='test-token'
 from fastapi.testclient import TestClient
 from app.main import app
 
-client=TestClient(app)
 
-def test_ingest_requires_token_and_deduplicates():
+def test_ingest_requires_token_and_deduplicates(client):
     e={'event_id':str(uuid.uuid4()),'study_id':'P1','device_id':'W1','ts_ms':1700000000000,'type':'heart_rate','source':'test','payload':{'bpm':82}}
     assert client.post('/api/v1/ingest',json={'events':[e]}).status_code==401
     h={'Authorization':'Bearer test-token'}

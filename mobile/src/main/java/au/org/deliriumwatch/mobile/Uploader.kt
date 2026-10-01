@@ -10,16 +10,18 @@ import java.time.Instant
 object Uploader {
     data class Result(val ok: Boolean, val message: String, val uploaded: Int = 0)
 
+    @Synchronized
     fun uploadOnce(context: Context): Result {
         val prefs = PhonePrefs(context)
         val base = prefs.serverUrl
         if (base.isBlank()) return Result(false, "Server URL is not configured")
         val db = PhoneDb(context)
-        val pending = db.pending(100)
-        if (pending.isEmpty()) return Result(true, "Queue empty", 0)
+        var conn: HttpURLConnection? = null
         return try {
+            val pending = db.pending(100)
+            if (pending.isEmpty()) return Result(true, "Queue empty", 0)
             val body = JSONObject().put("events", JSONArray().apply { pending.forEach { put(it.second) } }).toString()
-            val conn = (URL("$base/api/v1/ingest").openConnection() as HttpURLConnection).apply {
+            conn = (URL("$base/api/v1/ingest").openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
                 connectTimeout = 10_000
                 readTimeout = 20_000
@@ -38,13 +40,14 @@ object Uploader {
             } else Result(false, "HTTP $code: $response")
         } catch (e: Exception) {
             Result(false, e.javaClass.simpleName + ": " + (e.message ?: "upload failed"))
-        }
+        } finally { conn?.disconnect(); db.close() }
     }
 
     fun drain(context: Context, maxBatches: Int = 10): Result {
         var total = 0
         var last = Result(true, "Queue empty", 0)
         repeat(maxBatches) {
+            if (Thread.currentThread().isInterrupted) return Result(false, "Upload interrupted", total)
             last = uploadOnce(context)
             total += last.uploaded
             if (!last.ok || last.uploaded == 0) return Result(last.ok, last.message, total)

@@ -8,8 +8,8 @@ android {
         applicationId = "au.org.deliriumwatch"
         minSdk = 30
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.2"
     }
 
     compileOptions {
@@ -19,6 +19,8 @@ android {
 }
 
 dependencies {
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20250517")
     implementation("com.google.android.gms:play-services-wearable:20.0.1")
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.aar"))))
 }

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Literal
+import math
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -13,10 +14,24 @@ class EventIn(BaseModel):
     source: str = Field(default="watch", max_length=40)
     payload: dict[str, Any] = Field(default_factory=dict)
 
-    @field_validator("study_id")
+    @field_validator("study_id", mode="before")
     @classmethod
     def strip_study_id(cls, value: str) -> str:
         return value.strip()
+
+
+    @field_validator("payload")
+    @classmethod
+    def finite_payload(cls, value: dict) -> dict:
+        def check(item):
+            if isinstance(item, float) and not math.isfinite(item):
+                raise ValueError("Nonfinite numeric values are not valid research data")
+            if isinstance(item, dict):
+                for child in item.values(): check(child)
+            elif isinstance(item, list):
+                for child in item: check(child)
+        check(value)
+        return value
 
 
 class IngestRequest(BaseModel):

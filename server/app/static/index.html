@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DeliriumWatch Research Dashboard</title>
+  <style>
+    :root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif}*{box-sizing:border-box}body{margin:0;background:#101318;color:#eef2f6}
+    header{padding:14px 20px;border-bottom:1px solid #303640;display:flex;align-items:center;gap:14px;flex-wrap:wrap}h1{font-size:20px;margin:0}.warning{font-size:12px;color:#ffcc80;flex:1}
+    header input{max-width:220px}main{display:grid;grid-template-columns:250px 1fr;min-height:calc(100vh - 70px)}aside{border-right:1px solid #303640;padding:16px}section{padding:18px}
+    #patients button{width:100%;text-align:left;margin:4px 0;padding:10px;border:1px solid #39414c;border-radius:8px;background:#171c23;color:inherit}#patients button.active{outline:2px solid #90caf9}
+    .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.card,.panel{background:#171c23;border:1px solid #303640;border-radius:10px;padding:12px}.panel{margin-top:14px}.card{min-height:76px}.label{font-size:12px;color:#aab4c0}.value{font-size:26px;margin-top:8px}.small{font-size:12px;color:#aab4c0}
+    canvas{width:100%;height:180px;background:#101318;border-radius:8px}input,select,button{font:inherit}input,select{background:#101318;color:inherit;border:1px solid #3a4350;border-radius:6px;padding:8px}button{cursor:pointer;padding:8px 10px}.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:end}.controls label{display:flex;flex-direction:column;gap:4px;font-size:12px}
+    table{border-collapse:collapse;width:100%;font-size:12px}th,td{border-bottom:1px solid #303640;padding:7px;text-align:left;vertical-align:top}.status{font-size:12px;color:#aab4c0}.error{color:#ef9a9a}.ok{color:#a5d6a7}
+    @media(max-width:780px){main{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid #303640}}
+  </style>
+</head>
+<body>
+<header>
+  <h1>DeliriumWatch Research Dashboard</h1>
+  <div class="warning">Research only — change indices are not delirium/sepsis probabilities and must not drive clinical care.</div>
+  <input id="token" type="password" placeholder="Server token (if configured)" autocomplete="off">
+  <button id="saveToken">Use token</button>
+</header>
+<main>
+  <aside><div class="label">Participants</div><div id="patients"></div><p id="status" class="status">Connecting…</p></aside>
+  <section>
+    <div id="empty">No participant selected. Data will appear after the phone uploads watch records.</div>
+    <div id="content" hidden>
+      <h2 id="study"></h2>
+      <div class="cards">
+        <div class="card"><div class="label">Heart rate</div><div class="value" id="hr">—</div><div class="small">bpm</div></div>
+        <div class="card"><div class="label">HRV RMSSD</div><div class="value" id="hrv">—</div><div class="small">ms, recent valid IBI</div></div>
+        <div class="card"><div class="label">Skin temperature</div><div class="value" id="temp">—</div><div class="small">°C, peripheral/object temperature</div></div>
+        <div class="card"><div class="label">Movement RMS</div><div class="value" id="move">—</div><div class="small">m/s², latest 5 s window</div></div>
+        <div class="card"><div class="label">Cognition accuracy</div><div class="value" id="cog">—</div><div class="small">latest task</div></div>
+        <div class="card"><div class="label">Acute change index</div><div class="value" id="acute">—</div><div class="small">last 30 min vs ~1–6 h earlier</div></div>
+        <div class="card"><div class="label">Confirmed-baseline change</div><div class="value" id="baseline">—</div><div class="small">only labelled non-delirious data</div></div>
+      </div>
+
+      <div class="panel"><div class="label">Last 24 hours — movement RMS</div><canvas id="movementChart" width="1100" height="220"></canvas></div>
+      <div class="panel"><div class="label">Last 24 hours — heart rate</div><canvas id="hrChart" width="1100" height="220"></canvas></div>
+
+      <div class="panel">
+        <div class="label">Movement qualification — descriptive research features</div>
+        <table><tbody id="movementMetrics"></tbody></table>
+        <p class="small">Near-immobile/active-window thresholds are engineering descriptors, not validated delirium thresholds. Wrist movement alone does not establish sleep or posture.</p>
+      </div>
+
+      <div class="panel">
+        <div class="controls">
+          <label>State<select id="state"><option>UNKNOWN</option><option>NON_DELIRIOUS_CONFIRMED</option><option>DELIRIUM_SUSPECTED</option><option>DELIRIUM_CONFIRMED</option><option>RECOVERY</option></select></label>
+          <label>Note<input id="note" placeholder="procedure / context"></label>
+          <button id="saveState">Mark state now</button><button id="add4at">Record 4AT</button><button id="csv">Export CSV</button><button id="jsonl">Export JSONL</button>
+        </div>
+      </div>
+
+      <div class="panel"><div class="label">Recent annotations</div><table><thead><tr><th>Time</th><th>Kind</th><th>Value</th><th>Note</th></tr></thead><tbody id="annotations"></tbody></table></div>
+    </div>
+  </section>
+</main>
+<script>
+let selected=null,ws=null;const $=id=>document.getElementById(id);$('token').value=localStorage.getItem('dwToken')||'';
+const fmt=(v,d=1)=>v===null||v===undefined?'—':Number(v).toFixed(d);const authHeaders=()=>{const t=$('token').value.trim();return t?{'Authorization':'Bearer '+t}:{};};
+async function api(path,options={}){options.headers={...(options.headers||{}),...authHeaders()};const r=await fetch(path,options);if(!r.ok)throw new Error(r.status===401?'Authentication required / token incorrect':await r.text());return r.json();}
+function setStatus(msg,ok=false){$('status').textContent=msg;$('status').className='status '+(ok?'ok':'error');}
+async function loadPatients(){try{const pts=await api('/api/v1/patients'),box=$('patients');box.innerHTML='';pts.forEach(p=>{const b=document.createElement('button');b.textContent=`${p.study_id} (${p.event_count})`;b.onclick=()=>selectPatient(p.study_id);if(p.study_id===selected)b.className='active';box.appendChild(b)});if(!selected&&pts.length)selectPatient(pts[0].study_id);setStatus(pts.length?`${pts.length} participant(s)`:'Connected — no data yet',true)}catch(e){setStatus(e.message);}}
+function draw(id,points){const c=$(id),x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);if(!points.length)return;const valid=points.filter(p=>Number.isFinite(Number(p.value)));if(!valid.length)return;const vals=valid.map(p=>Number(p.value)),t0=valid[0].ts_ms,t1=valid.at(-1).ts_ms||t0+1,min=Math.min(...vals),max=Math.max(...vals),span=max-min||1;x.strokeStyle='#90caf9';x.lineWidth=2;x.beginPath();valid.forEach((p,i)=>{const v=Number(p.value),px=20+(p.ts_ms-t0)/(t1-t0||1)*(c.width-40),py=15+(max-v)/span*(c.height-35);i?x.lineTo(px,py):x.moveTo(px,py)});x.stroke();x.fillStyle='#9aa5b1';x.font='12px system-ui';x.fillText(max.toFixed(2),4,14);x.fillText(min.toFixed(2),4,c.height-6)}
+function esc(v){return String(v??'').replace(/[&<>'"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));}
+function metricRows(m){if(!m?.available)return '<tr><td colspan="2">No movement data</td></tr>';const items=[['Observed span',fmt(m.observed_hours,1)+' h'],['Data coverage',fmt(100*m.coverage_fraction,1)+'%'],['Mean RMS (24 h)',fmt(m.mean_rms_24h,4)+' m/s²'],['Active fraction (last hour)',m.mean_active_fraction_1h==null?'—':fmt(100*m.mean_active_fraction_1h,1)+'%'],['Near-immobile windows',fmt(100*m.near_immobile_window_fraction_24h,1)+'%'],['Within-window transitions',fmt(m.within_window_transitions_per_hour,1)+'/h'],['Active bouts',String(m.movement_bouts_24h??'—')],['Median active bout',m.median_active_bout_seconds==null?'—':fmt(m.median_active_bout_seconds,0)+' s'],['1-min movement RMSSD',fmt(m.movement_rmssd_1min,4)],['Mean jerk RMS',fmt(m.mean_jerk_rms_24h,4)],['Night/day activity ratio',fmt(m.night_day_activity_ratio,2)],['M10 RMS',fmt(m.m10_rms,4)],['L5 RMS',fmt(m.l5_rms,4)],['Relative amplitude',fmt(m.relative_amplitude,3)]];return items.map(([a,b])=>`<tr><td>${a}</td><td>${b}</td></tr>`).join('')}
+async function refresh(){if(!selected)return;try{const [s,t,a]=await Promise.all([api(`/api/v1/patients/${encodeURIComponent(selected)}/summary`),api(`/api/v1/patients/${encodeURIComponent(selected)}/series?hours=24&bucket_seconds=60`),api(`/api/v1/patients/${encodeURIComponent(selected)}/annotations`)]);$('hr').textContent=fmt(s.current.heart_rate_bpm,0);$('hrv').textContent=fmt(s.current.hrv_rmssd_ms,0);$('temp').textContent=fmt(s.current.skin_temp_c,2);$('move').textContent=s.current.movement?fmt(s.current.movement.rms,3):'—';$('cog').textContent=s.current.cognition?fmt(100*s.current.cognition.accuracy,0)+'%':'—';$('acute').textContent=fmt(s.acute_change.index,0);$('baseline').textContent=fmt(s.confirmed_baseline_change.index,0);$('movementMetrics').innerHTML=metricRows(s.movement_metrics);draw('movementChart',t.movement_rms);draw('hrChart',t.heart_rate);$('annotations').innerHTML=a.slice(-30).reverse().map(v=>`<tr><td>${new Date(v.ts_ms).toLocaleString()}</td><td>${esc(v.kind)}</td><td>${esc(v.value)}</td><td>${esc(v.note)}</td></tr>`).join('');setStatus('Live',true)}catch(e){setStatus(e.message)}}
+function selectPatient(id){selected=id;$('empty').hidden=true;$('content').hidden=false;$('study').textContent=id;loadPatients();refresh();connectWs()}
+async function annotate(kind,value){if(!selected)return;await api(`/api/v1/patients/${encodeURIComponent(selected)}/annotations`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ts_ms:Date.now(),kind,value,note:$('note').value})});refresh()}
+$('saveState').onclick=()=>annotate('state',$('state').value).catch(e=>setStatus(e.message));$('add4at').onclick=()=>{const v=prompt('4AT score / result:');if(v!==null)annotate('4at',v).catch(e=>setStatus(e.message))};
+async function download(ext){if(!selected)return;try{const r=await fetch(`/api/v1/export/${encodeURIComponent(selected)}.${ext}`,{headers:authHeaders()});if(!r.ok)throw new Error(await r.text());const blob=await r.blob(),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${selected}-events.${ext}`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}catch(e){setStatus(e.message)}}$('csv').onclick=()=>download('csv');$('jsonl').onclick=()=>download('jsonl');
+function connectWs(){if(ws)try{ws.close()}catch{}if(!selected)return;const proto=location.protocol==='https:'?'wss':'ws',token=encodeURIComponent($('token').value.trim());ws=new WebSocket(`${proto}://${location.host}/ws/${encodeURIComponent(selected)}?token=${token}`);ws.onopen=()=>ws.send('ready');ws.onmessage=()=>refresh();ws.onclose=()=>setTimeout(()=>{if(selected)connectWs()},3000)}
+$('saveToken').onclick=()=>{localStorage.setItem('dwToken',$('token').value.trim());if(ws)try{ws.close()}catch{}loadPatients();if(selected){refresh();connectWs()}};
+loadPatients();setInterval(()=>{loadPatients();refresh()},10000);
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+.gradle/
+.idea/
+local.properties
+**/build/
+*.iml
+.DS_Store
+server/.venv/
+server/__pycache__/
+server/**/*.pyc
+server/deliriumwatch.db
+watch/libs/*.aar
+!watch/libs/README.md

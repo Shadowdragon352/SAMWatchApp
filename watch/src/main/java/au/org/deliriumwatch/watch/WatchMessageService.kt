@@ -1,19 +1,22 @@
 package au.org.deliriumwatch.watch
 
-import android.content.Intent
+import android.util.Log
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.WearableListenerService
 import org.json.JSONObject
 
 class WatchMessageService : WearableListenerService() {
-    override fun onMessageReceived(messageEvent: MessageEvent) {
-        if(messageEvent.path!=PATH_CONFIG) return
+    override fun onMessageReceived(event: MessageEvent) {
         try {
-            val prefs=WatchPrefs(this)
-            prefs.applyConfig(JSONObject(String(messageEvent.data,Charsets.UTF_8)))
-            CognitionScheduler.scheduleAll(this,prefs.promptTimes)
-            if(prefs.monitoring) startForegroundService(Intent(this,MonitoringService::class.java).setAction(MonitoringService.ACTION_RESTART))
-        } catch (_:Exception) { }
+            val obj = JSONObject(String(event.data, Charsets.UTF_8))
+            when (event.path) {
+                WatchTransport.PATH_ACK -> WatchTransport.acknowledge(this, event.sourceNodeId, obj.getString("batch_id"))
+                PATH_CONFIG -> {
+                    val prefs = WatchPrefs(this)
+                    MonitoringService.applyConfiguration(applicationContext, obj)
+                }
+            }
+        } catch (e: Exception) { Log.w("DeliriumWatch", "Invalid phone message", e) }
     }
-    companion object { const val PATH_CONFIG="/delirium-watch/config" }
+    companion object { const val PATH_CONFIG = "/delirium-watch/config" }
 }

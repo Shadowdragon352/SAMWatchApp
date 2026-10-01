@@ -33,9 +33,6 @@ class PhoneDb(context: Context) : SQLiteOpenHelper(context, "gateway.db", null, 
                 val e = events.optJSONObject(i) ?: continue
                 val eventId = e.optString("event_id")
                 if (eventId.isBlank()) continue
-                if (e.optString("study_id").isBlank() || e.optString("study_id") == "UNASSIGNED") {
-                    e.put("study_id", configuredStudyId)
-                }
                 val cv = ContentValues().apply {
                     put("event_id", eventId)
                     put("study_id", e.optString("study_id", configuredStudyId))
@@ -44,7 +41,11 @@ class PhoneDb(context: Context) : SQLiteOpenHelper(context, "gateway.db", null, 
                     put("uploaded", 0)
                     put("received_ms", System.currentTimeMillis())
                 }
-                if (writableDatabase.insertWithOnConflict("events", null, cv, SQLiteDatabase.CONFLICT_IGNORE) != -1L) inserted++
+                val result = writableDatabase.insertWithOnConflict("events", null, cv, SQLiteDatabase.CONFLICT_IGNORE)
+                if (result != -1L) inserted++
+                else readableDatabase.rawQuery("SELECT 1 FROM events WHERE event_id=?", arrayOf(eventId)).use { c ->
+                    check(c.moveToFirst()) { "Record could not be saved" }
+                }
             }
             writableDatabase.setTransactionSuccessful()
         } finally { writableDatabase.endTransaction() }
@@ -65,8 +66,9 @@ class PhoneDb(context: Context) : SQLiteOpenHelper(context, "gateway.db", null, 
         val db = writableDatabase
         db.beginTransaction()
         try {
-            val stmt = db.compileStatement("UPDATE events SET uploaded=1 WHERE event_id=?")
-            ids.forEach { stmt.clearBindings(); stmt.bindString(1, it); stmt.executeUpdateDelete() }
+            db.compileStatement("UPDATE events SET uploaded=1 WHERE event_id=?").use { stmt ->
+                ids.forEach { stmt.clearBindings(); stmt.bindString(1, it); stmt.executeUpdateDelete() }
+            }
             db.setTransactionSuccessful()
         } finally { db.endTransaction() }
     }

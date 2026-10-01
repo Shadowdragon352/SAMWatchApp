@@ -1,3 +1,5 @@
+> **Repair release 0.1.2:** Read [FIXES.md](FIXES.md) first for update instructions, verified checks and current limitations. The Gradle wrapper is now included; after a watch reboot, resume monitoring from the app.
+
 # Installation and first-device test
 
 ## 1. Requirements

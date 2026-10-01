@@ -24,6 +24,7 @@ class SamsungHealthSensorBridge(
     }
 
     private var service: Any? = null
+    @Volatile private var generation = 0
     private val trackerListeners = mutableListOf<Pair<Any, Any>>()
 
     fun isBundled(): Boolean = try { Class.forName(SERVICE); true } catch (_: Throwable) { false }
@@ -31,13 +32,22 @@ class SamsungHealthSensorBridge(
     private var enablePpg = false
     private var allPpgWavelengths = false
 
+    @Synchronized
     fun start(enablePpg: Boolean = false, allPpgWavelengths: Boolean = false) {
+        stop()
+        val current = generation
         this.enablePpg = enablePpg
         this.allPpgWavelengths = allPpgWavelengths
         if (!isBundled()) { callback.onStatus("Samsung SDK not bundled; Android sensor fallback active"); return }
         try {
             val listenerClass = Class.forName(CONNECTION_LISTENER)
-            val listener = Proxy.newProxyInstance(listenerClass.classLoader, arrayOf(listenerClass)) { _, method, args ->
+            val listener = Proxy.newProxyInstance(listenerClass.classLoader, arrayOf(listenerClass)) { proxy, method, args ->
+                when (method.name) {
+                    "hashCode" -> return@newProxyInstance System.identityHashCode(proxy)
+                    "equals" -> return@newProxyInstance proxy === args?.firstOrNull()
+                    "toString" -> return@newProxyInstance "DeliriumWatchSamsungConnection"
+                }
+                if (current != generation) return@newProxyInstance null
                 when (method.name) {
                     "onConnectionSuccess" -> {
                         callback.onConnected()
@@ -57,7 +67,9 @@ class SamsungHealthSensorBridge(
         }
     }
 
+    @Synchronized
     fun stop() {
+        generation++
         trackerListeners.toList().forEach { (tracker, listener) ->
             try {
                 val listenerClass = Class.forName(TRACKER_LISTENER)
@@ -69,21 +81,21 @@ class SamsungHealthSensorBridge(
         service = null
     }
 
+    @Synchronized
     private fun startTrackers() {
-        startTracker("ACCELEROMETER_CONTINUOUS", ::handleAccelerometer)
-        startTracker("HEART_RATE_CONTINUOUS", ::handleHeartRate)
+        if (WatchPermissions.heartRate(context)) startTracker("HEART_RATE_CONTINUOUS", ::handleHeartRate)
         if (enablePpg) startPpgTracker(::handlePpg)
-        startTracker("SKIN_TEMPERATURE_CONTINUOUS", ::handleTemperature)
+        if (android.os.Build.VERSION.SDK_INT < 36 || WatchPermissions.granted(context, "android.permission.health.READ_SKIN_TEMPERATURE")) startTracker("SKIN_TEMPERATURE_CONTINUOUS", ::handleTemperature)
     }
 
     private fun startTracker(typeName: String, consumer: (List<*>) -> Unit) {
         val svc = service ?: return
         try {
             val typeClass = Class.forName(TRACKER_TYPE)
-            val type = typeClass.enumConstants.firstOrNull { (it as? Enum<*>)?.name == typeName }
+            val type = typeClass.enumConstants?.firstOrNull { (it as? Enum<*>)?.name == typeName }
                 ?: return callback.onStatus("Samsung tracker $typeName not present in this SDK")
             val getTracker = svc.javaClass.methods.first { it.name == "getHealthTracker" && it.parameterCount == 1 }
-            val tracker = getTracker.invoke(svc, type)
+            val tracker = getTracker.invoke(svc, type) ?: return callback.onStatus("Samsung tracker unavailable: $typeName")
             attachListener(tracker, typeName, consumer)
         } catch (t: Throwable) {
             callback.onStatus("Samsung $typeName unavailable: ${rootMessage(t)}")
@@ -100,19 +112,19 @@ class SamsungHealthSensorBridge(
         val typeName = "PPG_CONTINUOUS"
         try {
             val typeClass = Class.forName(TRACKER_TYPE)
-            val type = typeClass.enumConstants.firstOrNull { (it as? Enum<*>)?.name == typeName }
+            val type = typeClass.enumConstants?.firstOrNull { (it as? Enum<*>)?.name == typeName }
                 ?: return callback.onStatus("Samsung tracker $typeName not present in this SDK")
             val ppgTypeClass = Class.forName(PPG_TYPE)
             val requested = linkedSetOf<Any>()
             val wantedTypes = if (allPpgWavelengths) listOf("GREEN", "RED", "IR") else listOf("GREEN")
             wantedTypes.forEach { wanted ->
-                ppgTypeClass.enumConstants.firstOrNull { (it as? Enum<*>)?.name == wanted }?.let(requested::add)
+                ppgTypeClass.enumConstants?.firstOrNull { (it as? Enum<*>)?.name == wanted }?.let(requested::add)
             }
             if (requested.isEmpty()) return callback.onStatus("Samsung PpgType values unavailable")
             val getTracker = svc.javaClass.methods.firstOrNull {
                 it.name == "getHealthTracker" && it.parameterCount == 2 && java.util.Set::class.java.isAssignableFrom(it.parameterTypes[1])
             } ?: return callback.onStatus("Samsung PPG tracker overload unavailable")
-            val tracker = getTracker.invoke(svc, type, requested)
+            val tracker = getTracker.invoke(svc, type, requested) ?: return callback.onStatus("Samsung tracker unavailable: $typeName")
             attachListener(tracker, typeName, consumer)
         } catch (t: Throwable) {
             callback.onStatus("Samsung $typeName unavailable: ${rootMessage(t)}")
@@ -121,12 +133,20 @@ class SamsungHealthSensorBridge(
 
     private fun attachListener(tracker: Any, typeName: String, consumer: (List<*>) -> Unit) {
         val listenerClass = Class.forName(TRACKER_LISTENER)
-        val listener = Proxy.newProxyInstance(listenerClass.classLoader, arrayOf(listenerClass)) { _, method, args ->
+        val current = generation
+        val listener = Proxy.newProxyInstance(listenerClass.classLoader, arrayOf(listenerClass)) { proxy, method, args ->
             when (method.name) {
+                "hashCode" -> return@newProxyInstance System.identityHashCode(proxy)
+                "equals" -> return@newProxyInstance proxy === args?.firstOrNull()
+                "toString" -> return@newProxyInstance "DeliriumWatchSamsungTracker:$typeName"
+            }
+            if (current != generation) return@newProxyInstance null
+            try { when (method.name) {
                 "onDataReceived" -> (args?.firstOrNull() as? List<*>)?.let(consumer)
                 "onError" -> callback.onStatus("Samsung $typeName tracker error: ${args?.firstOrNull()}")
                 "onFlushCompleted" -> Unit
             }
+            } catch (t: Throwable) { callback.onStatus("Samsung $typeName data error: ${rootMessage(t)}") }
             null
         }
         tracker.javaClass.getMethod("setEventListener", listenerClass).invoke(tracker, listener)

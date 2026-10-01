@@ -31,7 +31,7 @@ class WatchDb(context: Context) : SQLiteOpenHelper(context, "watch_events.db", n
 
     @Synchronized
     fun pendingForMessage(maxEvents: Int=100, maxBytes: Int=48_000): List<QueuedEvent> {
-        val out=mutableListOf<QueuedEvent>(); var bytes=32
+        val out=mutableListOf<QueuedEvent>(); var bytes=120
         readableDatabase.query("events", arrayOf("id","payload"), "sent=0", null,null,null,"id ASC",maxEvents.toString()).use { c ->
             while(c.moveToNext()) {
                 val item=QueuedEvent(c.getLong(0),c.getString(1)); val next=item.payload.toByteArray(Charsets.UTF_8).size+2
@@ -45,7 +45,7 @@ class WatchDb(context: Context) : SQLiteOpenHelper(context, "watch_events.db", n
     @Synchronized
     fun markSent(ids: List<Long>) {
         val db=writableDatabase; db.beginTransaction()
-        try { val s=db.compileStatement("UPDATE events SET sent=1 WHERE id=?"); ids.forEach { s.clearBindings(); s.bindLong(1,it); s.executeUpdateDelete() }; db.setTransactionSuccessful() } finally { db.endTransaction() }
+        try { db.compileStatement("UPDATE events SET sent=1 WHERE id=?").use { s -> ids.forEach { s.clearBindings(); s.bindLong(1,it); s.executeUpdateDelete() } }; db.setTransactionSuccessful() } finally { db.endTransaction() }
     }
 
     fun pendingCount(): Int { readableDatabase.rawQuery("SELECT COUNT(*) FROM events WHERE sent=0",null).use { c -> return if(c.moveToFirst()) c.getInt(0) else 0 } }

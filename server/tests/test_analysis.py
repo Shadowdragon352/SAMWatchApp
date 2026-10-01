@@ -2,9 +2,6 @@ from __future__ import annotations
 import os, tempfile, uuid
 from pathlib import Path
 
-fd, path = tempfile.mkstemp(suffix='.db'); os.close(fd)
-os.environ['DELIRIUMWATCH_DB']=path
-
 from app import db, analysis
 from app.models import EventIn, AnnotationIn
 
@@ -27,11 +24,6 @@ def test_baseline_not_assumed_and_then_enabled():
     db.insert_annotation(study, AnnotationIn(ts_ms=now-900_000, kind='state', value='UNKNOWN', note='end reference'))
     s=analysis.summary(study, now_ms=now)
     assert s['confirmed_baseline_change']['index'] is not None
-
-
-def teardown_module():
-    try: Path(path).unlink(missing_ok=True)
-    except Exception: pass
 
 
 def test_movement_metrics_are_descriptive_and_available():

@@ -25,7 +25,7 @@ class WatchPrefs(context: Context) {
         set(v) = p.edit().putInt("retention_hours", v.coerceIn(12,336)).apply()
     var activeThreshold: Double
         get() = java.lang.Double.longBitsToDouble(p.getLong("active_threshold", java.lang.Double.doubleToRawLongBits(0.12)))
-        set(v) = p.edit().putLong("active_threshold", java.lang.Double.doubleToRawLongBits(v.coerceIn(0.01,5.0))).apply()
+        set(v) = p.edit().putLong("active_threshold", java.lang.Double.doubleToRawLongBits(if (v.isFinite()) v.coerceIn(0.01,5.0) else 0.12)).apply()
     var promptTimes: String
         get() = p.getString("prompt_times", "09:00,14:00,19:00") ?: "09:00,14:00,19:00"
         set(v) = p.edit().putString("prompt_times", v).apply()

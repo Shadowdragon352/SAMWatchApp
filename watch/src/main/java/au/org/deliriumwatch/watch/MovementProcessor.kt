@@ -13,9 +13,11 @@ class MovementProcessor(private val windowMs: Long = 5_000, private val threshol
 
     @Synchronized
     fun add(sample: AccelSample) {
+        if (!sample.x.isFinite() || !sample.y.isFinite() || !sample.z.isFinite()) return
+        if (samples.isNotEmpty() && sample.tsMs < samples.last().tsMs) flush()
         if(windowStart==0L) windowStart=sample.tsMs
         samples+=sample
-        if(sample.tsMs-windowStart>=windowMs) flush(sample.tsMs)
+        if(sample.tsMs-windowStart>=windowMs || samples.size >= 250) flush(sample.tsMs)
     }
 
     @Synchronized

@@ -8,6 +8,9 @@ class WatchPrefs(context: Context) {
     var studyId: String
         get() = p.getString("study_id", "UNASSIGNED") ?: "UNASSIGNED"
         set(v) = p.edit().putString("study_id", v.ifBlank { "UNASSIGNED" }).apply()
+    var patientName: String
+        get() = p.getString("patient_name", "") ?: ""
+        set(v) = p.edit().putString("patient_name", v.take(200)).apply()
     var rawAccel: Boolean
         get() = p.getBoolean("raw_accel", false)
         set(v) = p.edit().putBoolean("raw_accel", v).apply()
@@ -50,6 +53,7 @@ class WatchPrefs(context: Context) {
 
     fun applyConfig(obj: JSONObject) {
         studyId = obj.optString("study_id", studyId)
+        patientName = obj.optString("patient_name", "")
         rawAccel = obj.optBoolean("raw_accel", rawAccel)
         ppgEnabled = obj.optBoolean("ppg_enabled", ppgEnabled)
         ppgAllWavelengths = obj.optBoolean("ppg_all_wavelengths", ppgAllWavelengths)

@@ -186,11 +186,19 @@ class MonitoringService : Service(), SensorEventListener, SamsungHealthSensorBri
             Handler(Looper.getMainLooper()).post {
                 val svc = active
                 val restart = svc?.started == true
-                if (restart) svc!!.cleanupSensors()
                 val prefs = WatchPrefs(context)
+                val studyChanged = config.optString("study_id", prefs.studyId) != prefs.studyId
+                // Flush old sensor windows under the old study ID before applying a handoff.
+                if (restart) svc!!.cleanupSensors()
                 prefs.applyConfig(config)
+                if (studyChanged) {
+                    prefs.monitoring = false
+                    prefs.lastHeartRate = 0; prefs.lastMovement = Double.NaN; prefs.lastTemp = Double.NaN
+                    prefs.lastSensorStatus = "Study changed. Check patient link, then start monitoring manually."
+                    svc?.stopForeground(STOP_FOREGROUND_REMOVE); svc?.stopSelf()
+                }
                 CognitionScheduler.scheduleAll(context, prefs.promptTimes)
-                if (restart) {
+                if (restart && !studyChanged) {
                     try { svc!!.startMonitoring() } catch (e: Exception) {
                         prefs.monitoring = false
                         prefs.lastSensorStatus = "Restart failed: ${e.message}"

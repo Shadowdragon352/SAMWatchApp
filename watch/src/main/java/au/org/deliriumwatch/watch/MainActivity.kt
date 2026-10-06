@@ -115,7 +115,8 @@ class MainActivity : Activity() {
         val count = WatchDb(this).use { it.pendingCount() }
         val move = if (prefs.lastMovement.isFinite()) "%.3f".format(prefs.lastMovement) else "—"
         val temp = if (prefs.lastTemp.isFinite()) "%.2f".format(prefs.lastTemp) else "—"
-        status.text = "Study: ${prefs.studyId}\nMonitoring: ${if (prefs.monitoring) "ON" else "OFF"}\nHR: ${if (prefs.lastHeartRate > 0) prefs.lastHeartRate.toString() else "—"}\nMovement RMS: $move\nSkin temp: $temp\nQueued: $count\n${prefs.lastSensorStatus}"
+        val deviceId = EventFactory.deviceId(this)
+        status.text = "${if(prefs.patientName.isNotBlank()) "Patient: ${prefs.patientName}\n" else ""}Device: $deviceId\nStudy: ${prefs.studyId}\nMonitoring: ${if (prefs.monitoring) "ON" else "OFF"}\nHR: ${if (prefs.lastHeartRate > 0) prefs.lastHeartRate.toString() else "—"}\nMovement RMS: $move\nSkin temp: $temp\nQueued: $count\n${prefs.lastSensorStatus}"
     }
     private fun toast(value: String) = Toast.makeText(this, value, Toast.LENGTH_LONG).show()
     companion object { const val REQUEST_START = 77; const val REQUEST_SENSORS = 78; const val REQUEST_BACKGROUND = 79 }

@@ -20,6 +20,8 @@ class MainActivity : Activity() {
     private lateinit var server: EditText
     private lateinit var token: EditText
     private lateinit var study: EditText
+    private lateinit var device: EditText
+    private lateinit var patient: TextView
     private lateinit var rawAccel: CheckBox
     private lateinit var ppgEnabled: CheckBox
     private lateinit var ppgAll: CheckBox
@@ -49,11 +51,20 @@ class MainActivity : Activity() {
         val scroll = ScrollView(this)
         val root = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(28,28,28,40) }
         root.addView(TextView(this).apply { text="DeliriumWatch Gateway"; textSize=25f; setTextColor(Color.rgb(25,70,110)) })
-        root.addView(TextView(this).apply { text="Research only. This app relays pseudonymous watch data to your laptop; it does not diagnose delirium or sepsis."; textSize=14f; setPadding(0,8,0,18) })
+        root.addView(TextView(this).apply { text="Research only. This app relays pseudonymous watch data to your dashboard; it does not diagnose delirium or sepsis."; textSize=14f; setPadding(0,8,0,18) })
 
-        var pair = field("Laptop server URL (Tailscale hostname/IP is supported)", prefs.serverUrl); root.addView(pair.first); server=pair.second
-        pair = field("API token (optional but recommended)", prefs.token, true); root.addView(pair.first); token=pair.second
+        var pair = field("Dashboard base URL (e.g. https://dashboard.example.com)", prefs.serverUrl); root.addView(pair.first); server=pair.second
+        pair = field("Device API token (required by the integrated dashboard)", prefs.token, true); root.addView(pair.first); token=pair.second
         pair = field("Pseudonymous study ID", prefs.studyId); root.addView(pair.first); study=pair.second
+        pair = field("Watch device ID (shown on watch; also detected from received events)", prefs.watchDeviceId); root.addView(pair.first); device=pair.second
+        patient = TextView(this).apply { textSize=14f; setPadding(0,12,0,12) }; root.addView(patient)
+        root.addView(Button(this).apply { text="Refresh patient link"; setOnClickListener { lookupPatient() } })
+        root.addView(Button(this).apply { text="Use linked study ID"; setOnClickListener {
+            if(prefs.linkedStudyId.isBlank()) toast("Refresh the patient link first") else {
+                study.setText(prefs.linkedStudyId)
+                toast("Stop monitoring before a patient handoff, then press Save + send to watch. Queued events retain their original study ID.")
+            }
+        } })
         pair = field("Movement active threshold, m/s² (engineering threshold; not clinical)", prefs.activeThreshold.toString()); root.addView(pair.first); threshold=pair.second
         pair = field("Cognition prompt times, 24 h comma-separated", prefs.promptTimes); root.addView(pair.first); promptTimes=pair.second
         rawAccel = CheckBox(this).apply { text="Include raw accelerometer samples in research events"; isChecked=prefs.rawAccel }
@@ -82,13 +93,17 @@ class MainActivity : Activity() {
     }
 
     private fun saveAndSend() {
-        val url = server.text.toString().trim()
+        val url = server.text.toString().trim().trimEnd('/')
         if (url.isNotBlank() && !validServerUrl(url)) { toast("Use an http:// or https:// server URL"); return }
         val value = threshold.text.toString().toDoubleOrNull()
         if (value == null || !value.isFinite() || value !in 0.01..5.0) { toast("Movement threshold must be 0.01–5.0"); return }
         val times = promptTimes.text.toString().trim()
         if (!validPromptTimes(times)) { toast("Use up to 8 times such as 09:00,14:00,19:00"); return }
         if (study.text.toString().trim().length !in 1..100) { toast("Study ID must contain 1–100 characters"); return }
+        if(prefs.serverUrl != url || prefs.token != token.text.toString().trim() || prefs.watchDeviceId != device.text.toString().trim()) {
+            prefs.linkedPatientName = ""; prefs.linkedStudyId = ""; prefs.linkCheckedAt = 0
+        }
+        prefs.watchDeviceId = device.text.toString().trim()
         prefs.serverUrl = url
         prefs.token = token.text.toString()
         prefs.studyId = study.text.toString()
@@ -118,7 +133,39 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun lookupPatient() {
+        val url = server.text.toString().trim().trimEnd('/')
+        val key = token.text.toString().trim()
+        val id = device.text.toString().trim().ifBlank { prefs.watchDeviceId }
+        if (!validServerUrl(url)) { toast("Enter the dashboard base URL first"); return }
+        if (id.isBlank()) { toast("Enter the device ID shown on the watch, or sync a watch batch first"); return }
+        // Save only connection details; applying a new study ID needs an explicit save/send.
+        prefs.serverUrl = url; prefs.token = key; prefs.watchDeviceId = id
+        prefs.linkedPatientName = ""; prefs.linkedStudyId = ""; prefs.linkCheckedAt = 0
+        patient.text = "Looking up patient…"
+        executor.execute {
+            try {
+                val result = PatientLink.fetch(url, key, id)
+                handler.post {
+                    if (!isDestroyed && prefs.serverUrl == url && prefs.token == key && prefs.watchDeviceId == id) {
+                        prefs.linkedPatientName = result.name; prefs.linkedStudyId = result.studyId
+                        prefs.linkCheckedAt = System.currentTimeMillis()
+                        refreshStatus()
+                    }
+                }
+            } catch (e: Exception) {
+                handler.post { if(!isDestroyed) { patient.text="Patient lookup failed: ${e.message}"; toast("Patient link unavailable; check connection and token") } }
+            }
+        }
+    }
+
     private fun refreshStatus() {
+        if(device.text.isBlank() && prefs.watchDeviceId.isNotBlank()) device.setText(prefs.watchDeviceId)
+        patient.text = if(prefs.linkCheckedAt == 0L) "Patient link: not checked" else {
+            val name = prefs.linkedPatientName.ifBlank { "No linked patient" }
+            val mismatch = if(prefs.linkedStudyId.isNotBlank() && prefs.linkedStudyId != prefs.studyId) "\nStudy ID differs: use ${prefs.linkedStudyId}, then Save + send to watch" else ""
+            "Patient: $name\nLast checked: ${java.time.Instant.ofEpochMilli(prefs.linkCheckedAt)}$mismatch"
+        }
         val pending = PhoneDb(this).use { it.pendingCount() }
         status.text = "Queued events: $pending\nLast successful upload: ${prefs.lastUploadMessage}\nServer: ${prefs.serverUrl.ifBlank { "not configured" }}"
         Wearable.getNodeClient(this).connectedNodes.addOnSuccessListener { nodes ->

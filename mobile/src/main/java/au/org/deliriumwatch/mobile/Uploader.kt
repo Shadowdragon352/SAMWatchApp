@@ -23,6 +23,7 @@ object Uploader {
             val body = JSONObject().put("events", JSONArray().apply { pending.forEach { put(it.second) } }).toString()
             conn = (URL("$base/api/v1/ingest").openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
+                instanceFollowRedirects = false
                 connectTimeout = 10_000
                 readTimeout = 20_000
                 doOutput = true
@@ -33,10 +34,23 @@ object Uploader {
             val code = conn.responseCode
             val response = try { conn.inputStream.bufferedReader().use { it.readText() } } catch (_: Exception) { conn.errorStream?.bufferedReader()?.use { it.readText() } ?: "" }
             if (code in 200..299) {
+                // A login page or incomplete 2xx response must never erase queued events.
+                val receipt = JSONObject(response)
+                val ack = receipt.optJSONArray("acknowledged_event_ids")
+                val acknowledged = if (ack != null) {
+                    val ids = (0 until ack.length()).map { ack.getString(it) }.toSet()
+                    pending.all { it.first in ids }
+                } else {
+                    // Compatibility with the original DeliriumWatch Python server.
+                    receipt.optBoolean("ok", false) && receipt.optInt("inserted", -1) >= 0 &&
+                        receipt.optInt("duplicates", -1) >= 0 &&
+                        receipt.getInt("inserted") + receipt.getInt("duplicates") == pending.size
+                }
+                check(acknowledged) { "Server did not acknowledge the complete batch; events remain queued" }
                 db.markUploaded(pending.map { it.first })
                 db.pruneUploaded()
                 prefs.lastUploadMessage = "${Instant.now()} — ${pending.size} events"
-                Result(true, response.ifBlank { "Uploaded" }, pending.size)
+                Result(true, "Uploaded ${pending.size} events; ${receipt.optInt("unassigned", 0)} awaiting a patient link", pending.size)
             } else Result(false, "HTTP $code: $response")
         } catch (e: Exception) {
             Result(false, e.javaClass.simpleName + ": " + (e.message ?: "upload failed"))

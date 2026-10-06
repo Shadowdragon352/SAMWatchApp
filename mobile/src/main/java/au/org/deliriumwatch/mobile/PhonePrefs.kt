@@ -15,6 +15,19 @@ class PhonePrefs(context: Context) {
     var studyId: String
         get() = p.getString("studyId", "UNASSIGNED") ?: "UNASSIGNED"
         set(v) = p.edit().putString("studyId", v.trim().ifBlank { "UNASSIGNED" }).apply()
+    var watchDeviceId: String
+        get() = p.getString("watchDeviceId", "") ?: ""
+        set(v) = p.edit().putString("watchDeviceId", v.trim()).apply()
+    var linkedPatientName: String
+        get() = p.getString("linkedPatientName", "") ?: ""
+        set(v) = p.edit().putString("linkedPatientName", v).apply()
+    var linkedStudyId: String
+        get() = p.getString("linkedStudyId", "") ?: ""
+        set(v) = p.edit().putString("linkedStudyId", v).apply()
+    var linkCheckedAt: Long
+        get() = p.getLong("linkCheckedAt", 0)
+        set(v) = p.edit().putLong("linkCheckedAt", v).apply()
+
     var rawAccel: Boolean
         get() = p.getBoolean("rawAccel", false)
         set(v) = p.edit().putBoolean("rawAccel", v).apply()
@@ -42,6 +55,7 @@ class PhonePrefs(context: Context) {
 
     fun watchConfigJson(): JSONObject = JSONObject().apply {
         put("study_id", studyId)
+        put("patient_name", if(linkedStudyId == studyId) linkedPatientName else "")
         put("raw_accel", rawAccel)
         put("ppg_enabled", ppgEnabled)
         put("ppg_all_wavelengths", ppgAllWavelengths)

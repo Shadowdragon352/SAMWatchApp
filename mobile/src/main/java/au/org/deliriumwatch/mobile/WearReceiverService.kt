@@ -20,11 +20,20 @@ class WearReceiverService : WearableListenerService() {
                     require(row.getString("event_id").length in 8..100)
                     require(row.getString("study_id").trim().length in 1..100)
                     require(row.getLong("ts_ms") > 0)
+                    require(row.getString("device_id").trim().length in 1..100)
                     require(row.getString("type").length in 1..80)
                     row.getJSONObject("payload")
                 }
                 // Commit the entire batch before sending a receipt; retries deduplicate by UUID.
                 PhoneDb(this).use { it.insertBatch(obj, PhonePrefs(this).studyId) }
+                val preferences = PhonePrefs(this)
+                val deviceId = rows.getJSONObject(rows.length() - 1).getString("device_id")
+                if (preferences.watchDeviceId != deviceId) {
+                    preferences.watchDeviceId = deviceId
+                    preferences.linkedPatientName = ""
+                    preferences.linkedStudyId = ""
+                    preferences.linkCheckedAt = 0
+                }
                 val id = obj.optString("batch_id")
                 if (id.isNotBlank()) {
                     Wearable.getMessageClient(this).sendMessage(event.sourceNodeId, PATH_ACK,

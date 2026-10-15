@@ -15,6 +15,8 @@ BASELINE_STATE = "NON_DELIRIOUS_CONFIRMED"
 MINUTE_MS = 60_000
 HOUR_MS = 60 * MINUTE_MS
 DAY_MS = 24 * HOUR_MS
+REASSESSMENT_DOMAIN_THRESHOLD = float(os.getenv("DW_REASSESSMENT_THRESHOLD", "40"))
+QUALITY_EVENT_LOOKBACK_MS = 6 * HOUR_MS
 
 
 def _median(values: list[float]) -> float | None:
@@ -67,6 +69,25 @@ CHANGE_DOMAINS = {
     ),
 }
 
+# Direction is separate from magnitude. Cognition reaction-time features are
+# reversed because a longer reaction time represents worse performance.
+DIRECTION_POLARITY = {
+    "movement": {
+        "movement_rms": 1,
+        "active_fraction": 1,
+    },
+    "physiology": {
+        "heart_rate": 1,
+        "skin_temperature": 1,
+    },
+    "cognition": {
+        "attention_accuracy": 1,
+        "attention_rt": -1,
+        "one_back_accuracy": 1,
+        "one_back_rt": -1,
+    },
+}
+
 
 def _domain_change_indices(z_map: dict[str, float | None]) -> tuple[float | None, dict[str, float | None]]:
     """Magnitude-only engineering indices with equal weighting by data domain.
@@ -80,6 +101,307 @@ def _domain_change_indices(z_map: dict[str, float | None]) -> tuple[float | None
         domains[domain] = round(100.0 * statistics.mean(zs) / 5.0, 1) if zs else None
     available = [v for v in domains.values() if v is not None]
     return (round(statistics.mean(available), 1) if available else None), domains
+
+
+def _change_level(value: float | None) -> str:
+    """Engineering display label only; these are not clinical thresholds."""
+    if value is None:
+        return "unavailable"
+    if value < 20:
+        return "minimal"
+    if value < 40:
+        return "mild"
+    if value < 60:
+        return "moderate"
+    return "large"
+
+
+def _domain_directions(
+    z_map: dict[str, float | None],
+    domain_indices: dict[str, float | None],
+) -> dict[str, dict[str, str]]:
+    """Describe direction without changing the existing magnitude calculation."""
+    result: dict[str, dict[str, str]] = {}
+
+    for domain, feature_polarities in DIRECTION_POLARITY.items():
+        adjusted: list[float] = []
+        for feature, polarity in feature_polarities.items():
+            z = z_map.get(feature)
+            if z is not None:
+                adjusted.append(float(z) * polarity)
+
+        magnitude = domain_indices.get(domain)
+        if magnitude is None or not adjusted:
+            result[domain] = {
+                "direction": "unavailable",
+                "label": "No comparison available",
+                "level": "unavailable",
+            }
+            continue
+
+        # Ignore very small feature movements when deciding the arrow so noise
+        # does not make the dashboard appear more certain than the data support.
+        strong = [value for value in adjusted if abs(value) >= 0.5]
+        if magnitude < 10 or not strong:
+            direction = "stable"
+        elif any(value > 0 for value in strong) and any(value < 0 for value in strong):
+            direction = "mixed"
+        elif statistics.mean(strong) > 0:
+            direction = "up"
+        else:
+            direction = "down"
+
+        if domain == "cognition":
+            labels = {
+                "up": "Performance increased",
+                "down": "Performance decreased",
+                "mixed": "Mixed cognitive change",
+                "stable": "No substantial change",
+            }
+        else:
+            labels = {
+                "up": "Increased",
+                "down": "Decreased",
+                "mixed": "Mixed change",
+                "stable": "No substantial change",
+            }
+
+        result[domain] = {
+            "direction": direction,
+            "label": labels[direction],
+            "level": _change_level(magnitude),
+        }
+
+    return result
+
+
+def _measurement_confidence(
+    current: dict[str, float | None],
+    movement_metrics: dict[str, Any],
+    latest_movement: dict | None,
+    latest_cognition: dict | None,
+    baseline_domains: dict[str, float | None],
+    now_ms: int,
+) -> dict[str, Any]:
+    """Summarise availability/recency of data used for interpretation.
+
+    This is deliberately *not* diagnostic confidence. It only describes whether
+    the underlying measurements are recent and sufficiently available.
+    """
+    domains: dict[str, dict[str, Any]] = {}
+    issues: list[str] = []
+
+    # Movement: use freshness plus 24 h stream coverage.
+    movement_age_min = None
+    if latest_movement is not None:
+        movement_age_min = max(0.0, (now_ms - int(latest_movement["ts_ms"])) / MINUTE_MS)
+
+    coverage = movement_metrics.get("coverage_fraction") if movement_metrics.get("available") else None
+    movement_current = current.get("movement_rms") is not None or current.get("active_fraction") is not None
+
+    if not movement_current or movement_age_min is None or movement_age_min > 30:
+        movement_level = "unavailable"
+        issues.append("No recent movement measurement is available.")
+    elif movement_age_min <= 5 and coverage is not None and coverage >= 0.80:
+        movement_level = "high"
+    elif movement_age_min <= 15 and coverage is not None and coverage >= 0.50:
+        movement_level = "moderate"
+        issues.append("Movement data are usable but coverage or recency is reduced.")
+    else:
+        movement_level = "low"
+        issues.append("Movement data confidence is low; check watch fit, wear and sensor availability.")
+
+    if baseline_domains.get("movement") is None:
+        issues.append("Movement has insufficient confirmed-baseline data for a baseline comparison.")
+
+    domains["movement"] = {
+        "level": movement_level,
+        "coverage_percent": round(100.0 * coverage, 1) if coverage is not None else None,
+        "age_minutes": round(movement_age_min, 1) if movement_age_min is not None else None,
+    }
+
+    # Physiology: the current dictionary only contains values from the last 30 min.
+    physiology_available = sum([
+        current.get("heart_rate") is not None,
+        current.get("skin_temperature") is not None,
+    ])
+    if physiology_available == 2:
+        physiology_level = "high"
+    elif physiology_available == 1:
+        physiology_level = "moderate"
+        issues.append("One physiology measurement is unavailable in the recent window.")
+    else:
+        physiology_level = "unavailable"
+        issues.append("No recent physiology measurements are available.")
+
+    if baseline_domains.get("physiology") is None:
+        issues.append("Physiology has insufficient confirmed-baseline data for a baseline comparison.")
+
+    domains["physiology"] = {
+        "level": physiology_level,
+        "heart_rate_available": current.get("heart_rate") is not None,
+        "skin_temperature_available": current.get("skin_temperature") is not None,
+    }
+
+    # Cognition: a task is intermittent, so allow a larger recency window.
+    cognition_age_hours = None
+    if latest_cognition is None:
+        cognition_level = "unavailable"
+        issues.append("No cognitive assessment result is available.")
+    else:
+        cognition_age_hours = max(0.0, (now_ms - int(latest_cognition["ts_ms"])) / HOUR_MS)
+        if cognition_age_hours <= 2:
+            cognition_level = "high"
+        elif cognition_age_hours <= 6:
+            cognition_level = "moderate"
+            issues.append("The latest cognitive assessment is not recent.")
+        elif cognition_age_hours <= 12:
+            cognition_level = "low"
+            issues.append("The latest cognitive assessment is more than 6 hours old.")
+        else:
+            cognition_level = "unavailable"
+            issues.append("No sufficiently recent cognitive assessment is available.")
+
+    if baseline_domains.get("cognition") is None:
+        issues.append("Cognition has insufficient confirmed-baseline data for a baseline comparison.")
+
+    domains["cognition"] = {
+        "level": cognition_level,
+        "age_hours": round(cognition_age_hours, 1) if cognition_age_hours is not None else None,
+    }
+
+    rank = {"unavailable": 0, "low": 1, "moderate": 2, "high": 3}
+    usable = [rank[item["level"]] for item in domains.values() if item["level"] != "unavailable"]
+    if not usable:
+        overall = "unavailable"
+    elif statistics.mean(usable) >= 2.5:
+        overall = "high"
+    elif statistics.mean(usable) >= 1.5:
+        overall = "moderate"
+    else:
+        overall = "low"
+
+    return {
+        "overall": overall,
+        "domains": domains,
+        "issues": list(dict.fromkeys(issues)),
+        "description": (
+            "Confidence describes measurement availability, coverage and recency only; "
+            "it is not confidence in a delirium diagnosis."
+        ),
+    }
+
+
+def _reassessment_prompt(
+    domain_indices: dict[str, float | None],
+    directions: dict[str, dict[str, str]],
+    confidence: dict[str, Any],
+) -> dict[str, Any]:
+    changed = {
+        domain: value
+        for domain, value in domain_indices.items()
+        if value is not None and value >= REASSESSMENT_DOMAIN_THRESHOLD
+    }
+
+    if not changed:
+        return {
+            "show": False,
+            "threshold": REASSESSMENT_DOMAIN_THRESHOLD,
+            "message": "No reassessment prompt generated from the confirmed baseline.",
+            "research_only": True,
+        }
+
+    primary_domain = max(changed, key=changed.get)
+    domain_confidence = confidence.get("domains", {}).get(primary_domain, {}).get("level", "unavailable")
+
+    actions = {
+        "movement": (
+            "Movement has changed from the confirmed baseline. Check patient activity/context "
+            "and confirm that the watch measurement is representative before reassessing if appropriate."
+        ),
+        "physiology": (
+            "Physiology has changed from the confirmed baseline. Verify the physiological measurements "
+            "and reassess the patient if clinically appropriate."
+        ),
+        "cognition": (
+            "Cognitive performance has changed from the confirmed baseline. Consider a clinician-led "
+            "cognitive reassessment or 4AT if clinically appropriate."
+        ),
+    }
+
+    if domain_confidence in {"low", "unavailable"}:
+        suggested_action = (
+            "A baseline change was detected, but data confidence for the main changed domain is low. "
+            "Check the measurement and patient/device context before interpreting the change."
+        )
+    else:
+        suggested_action = actions[primary_domain]
+
+    changed_domains = [
+        {
+            "domain": domain,
+            "change_index": value,
+            "level": _change_level(value),
+            "direction": directions.get(domain, {}).get("direction", "unavailable"),
+            "direction_label": directions.get(domain, {}).get("label", "No comparison available"),
+            "confidence": confidence.get("domains", {}).get(domain, {}).get("level", "unavailable"),
+        }
+        for domain, value in sorted(changed.items(), key=lambda item: item[1], reverse=True)
+    ]
+
+    return {
+        "show": True,
+        "threshold": REASSESSMENT_DOMAIN_THRESHOLD,
+        "trigger_domain": primary_domain,
+        "domain_change": changed[primary_domain],
+        "direction": directions.get(primary_domain, {}).get("direction", "unavailable"),
+        "direction_label": directions.get(primary_domain, {}).get("label", "No comparison available"),
+        "confidence": domain_confidence,
+        "changed_domains": changed_domains,
+        "suggested_action": suggested_action,
+        "research_only": True,
+        "description": (
+            "Prototype engineering prompt based on change from confirmed baseline; "
+            "not a validated clinical threshold or diagnosis."
+        ),
+    }
+
+
+def _patient_quality_context(study_id: str, now_ms: int) -> dict[str, Any]:
+    """Expose recent patient/device interruptions without treating them as deterioration."""
+    events = db.get_events(
+        study_id,
+        start_ms=now_ms - QUALITY_EVENT_LOOKBACK_MS,
+        end_ms=now_ms,
+        types=["quality_issue", "cognition_prompt_outcome"],
+        limit=500,
+    )
+
+    quality_issues = []
+    cognition_outcomes = []
+    for event in events:
+        if event["type"] == "quality_issue":
+            quality_issues.append({
+                "ts_ms": event["ts_ms"],
+                "code": event["payload"].get("code", "unknown"),
+                "message": event["payload"].get("message", "Data-quality issue reported by watch."),
+                "severity": event["payload"].get("severity", "warning"),
+            })
+        elif event["type"] == "cognition_prompt_outcome":
+            cognition_outcomes.append({
+                "ts_ms": event["ts_ms"],
+                "outcome": event["payload"].get("outcome", "unknown"),
+                "session_id": event["payload"].get("session_id"),
+            })
+
+    return {
+        "recent_quality_issues": quality_issues[-10:],
+        "latest_cognition_prompt_outcome": cognition_outcomes[-1] if cognition_outcomes else None,
+        "description": (
+            "Interrupted or declined cognitive tasks and device errors are reported as data-quality/context "
+            "information and are not interpreted as patient deterioration."
+        ),
+    }
 
 
 def _safe_tz() -> ZoneInfo:
@@ -328,6 +650,24 @@ def summary(study_id: str, now_ms: int | None = None) -> dict[str, Any]:
 
     acute_score, acute_domains = _domain_change_indices(acute_z)
     baseline_score, baseline_domains = _domain_change_indices(baseline_z)
+    acute_directions = _domain_directions(acute_z, acute_domains)
+    baseline_directions = _domain_directions(baseline_z, baseline_domains)
+
+    movement_metrics = _movement_metrics(movement_events, now_ms)
+    measurement_confidence = _measurement_confidence(
+        current=current,
+        movement_metrics=movement_metrics,
+        latest_movement=latest_movement,
+        latest_cognition=latest_cognition,
+        baseline_domains=baseline_domains,
+        now_ms=now_ms,
+    )
+    reassessment_prompt = _reassessment_prompt(
+        baseline_domains,
+        baseline_directions,
+        measurement_confidence,
+    )
+    patient_quality = _patient_quality_context(study_id, now_ms)
 
     event_count_24h = db.count_events(study_id, start_ms=start_24h, end_ms=now_ms)
 
@@ -342,16 +682,21 @@ def summary(study_id: str, now_ms: int | None = None) -> dict[str, Any]:
             "movement": latest_movement,
             "cognition": latest_cognition,
         },
-        "movement_metrics": _movement_metrics(movement_events, now_ms),
+        "movement_metrics": movement_metrics,
+        "measurement_confidence": measurement_confidence,
+        "reassessment_prompt": reassessment_prompt,
+        "patient_quality": patient_quality,
         "acute_change": {
             "index": acute_score,
             "domain_indices": acute_domains,
+            "domain_directions": acute_directions,
             "z": acute_z,
             "description": "Research-only magnitude of change in the last 30 min versus approximately 1-6 h earlier; not a delirium or sepsis probability.",
         },
         "confirmed_baseline_change": {
             "index": baseline_score,
             "domain_indices": baseline_domains,
+            "domain_directions": baseline_directions,
             "z": baseline_z,
             "reference_counts": baseline_counts,
             "description": "Uses only periods explicitly labelled NON_DELIRIOUS_CONFIRMED; unavailable until enough labelled reference data exist.",

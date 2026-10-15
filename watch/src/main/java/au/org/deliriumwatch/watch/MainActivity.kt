@@ -1,6 +1,5 @@
 package au.org.deliriumwatch.watch
 
-import android.Manifest
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
@@ -37,7 +36,7 @@ class MainActivity : Activity() {
         fun label(value: String, size: Float, color: Int) = TextView(this).apply {
             text = value; textSize = size; setTextColor(color); gravity = Gravity.CENTER
         }
-        root.addView(label("DeliriumWatch", 18f, Color.WHITE))
+        root.addView(label("SAM", 18f, Color.WHITE))
         root.addView(label("Research only", 12f, Color.LTGRAY))
         fun button(value: String, action: () -> Unit) {
             root.addView(Button(this).apply {
@@ -45,17 +44,17 @@ class MainActivity : Activity() {
                 setOnClickListener { action() }
             }, LinearLayout.LayoutParams(-1, -2))
         }
-        button("Start monitoring") { requestStart() }
-        button("Stop monitoring") {
+        button("Start recording") { requestStart() }
+        button("Stop recording") {
             startPending = false
             stopService(Intent(this, MonitoringService::class.java))
             prefs.monitoring = false
             updateStatus()
         }
         button("Cognitive check") { startActivity(Intent(this, CognitiveActivity::class.java)) }
-        button("Send queued data") {
-            WatchTransport.flush(this) { ok, count ->
-                runOnUiThread { toast(if (ok) "Phone saved $count events" else "No receipt yet; data stays queued"); updateStatus() }
+        button("Sync recordings") {
+            WatchTransport.flush(this) { ok, _ ->
+                runOnUiThread { toast(if (ok) "Recordings sent to phone" else "Not synced yet. Recordings remain saved on this watch."); updateStatus() }
             }
         }
         button("Sensor permissions") {
@@ -99,7 +98,7 @@ class MainActivity : Activity() {
         } catch (e: Exception) {
             prefs.monitoring = false
             prefs.lastSensorStatus = "Cannot start: ${e.message}"
-            toast(prefs.lastSensorStatus)
+            toast("Recording could not start. Please ask the study team for help.")
         }
         updateStatus()
     }
@@ -112,11 +111,7 @@ class MainActivity : Activity() {
         }.addOnFailureListener { toast("Phone connection unavailable; local recording still works") }
     }
     private fun updateStatus() {
-        val count = WatchDb(this).use { it.pendingCount() }
-        val move = if (prefs.lastMovement.isFinite()) "%.3f".format(prefs.lastMovement) else "—"
-        val temp = if (prefs.lastTemp.isFinite()) "%.2f".format(prefs.lastTemp) else "—"
-        val deviceId = EventFactory.deviceId(this)
-        status.text = "${if(prefs.patientName.isNotBlank()) "Patient: ${prefs.patientName}\n" else ""}Device: $deviceId\nStudy: ${prefs.studyId}\nMonitoring: ${if (prefs.monitoring) "ON" else "OFF"}\nHR: ${if (prefs.lastHeartRate > 0) prefs.lastHeartRate.toString() else "—"}\nMovement RMS: $move\nSkin temp: $temp\nQueued: $count\n${prefs.lastSensorStatus}"
+        status.text = if (prefs.monitoring) "Recording is on" else "Recording is off"
     }
     private fun toast(value: String) = Toast.makeText(this, value, Toast.LENGTH_LONG).show()
     companion object { const val REQUEST_START = 77; const val REQUEST_SENSORS = 78; const val REQUEST_BACKGROUND = 79 }

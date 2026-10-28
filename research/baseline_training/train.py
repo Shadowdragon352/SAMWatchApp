@@ -65,6 +65,14 @@ def load_subject(cache: Path, subject: str) -> pd.DataFrame:
 
 
 def quality_reason(row: dict) -> str | None:
+    required = ['reference_available', 'worn', 'age_seconds', 'task_complete', 'rapid_taps']
+    if any(k not in row for k in required):
+        return 'quality_metadata_needed'
+    if any(type(row[k]) is not bool for k in required if k != 'age_seconds'):
+        return 'invalid_quality_metadata'
+    age = row['age_seconds']
+    if not isinstance(age, (int, float)) or isinstance(age, bool) or not np.isfinite(age) or age < 0:
+        return 'invalid_quality_metadata'
     if not row.get('reference_available', False):
         return 'reference_needed'
     if not row.get('worn', True):
@@ -77,7 +85,7 @@ def quality_reason(row: dict) -> str | None:
         return 'task_quality_problem'
     for name, low, high in [('heart_rate_bpm', 25, 240), ('skin_temp_c', 15, 45), ('movement_rms', 0, 50)]:
         value = row.get(name)
-        if value is None or not np.isfinite(value) or not low <= value <= high:
+        if not isinstance(value, (int, float)) or isinstance(value, bool) or not np.isfinite(value) or not low <= value <= high:
             return 'invalid_or_missing_sensor'
     return None
 
@@ -164,7 +172,7 @@ def interpret(bundle: dict, context: dict, features: dict) -> dict:
     if reason:
         return dict(status='quality_notice', reason=reason, score=None, clinical_prediction=False)
     values = [features.get(c) for c in bundle['features']]
-    if any(v is None or not np.isfinite(v) for v in values):
+    if any(not isinstance(v, (int, float)) or isinstance(v, bool) or not np.isfinite(v) for v in values):
         return dict(status='quality_notice', reason='missing_features', score=None, clinical_prediction=False)
     score = float(bundle['model'].predict_proba(pd.DataFrame([features])[bundle['features']])[0, 1])
     return dict(status='scripted_change_flag' if score >= bundle['threshold'] else 'no_scripted_flag',

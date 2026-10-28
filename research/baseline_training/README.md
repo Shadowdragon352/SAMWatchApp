@@ -58,7 +58,7 @@ Outputs: results.json (source hashes, versions, participant split, validation co
 
 The new offline quality gate returns a notice instead of a model score when explicit metadata says watch removed, data stale, reference missing, task incomplete or rapid tapping. It also blocks nonfinite/missing/invalid readings and missing features. Bounds and freshness limits are engineering assumptions, not clinical thresholds. Wear/task metadata are supplied test inputs: no automatic non-wear or rapid-tap detection is claimed.
 
-Eight new tests passed, including repeated three-column ACC timestamp parsing, reproducible generation, threshold handling and preventing inference for invalid inputs. Eight existing server tests also passed: no assumed normal baseline, descriptive movement metrics, input validation, HRV quality/gaps, atomic ingest validation and duplicate retry handling.
+Nine new tests passed, including repeated three-column ACC timestamp parsing, reproducible generation, threshold handling and preventing inference for invalid inputs. Eight existing server tests also passed: no assumed normal baseline, descriptive movement metrics, input validation, HRV quality/gaps, atomic ingest validation and duplicate retry handling.
 
 Android build, real watch collection, sensor accuracy, battery, on-device wear detection, Bluetooth reconnection and end-to-end Galaxy Watch → phone → SAM-Dash tests remain outstanding. The Python server tests concern the server in this watch repository, not the separate SAM-Dash Node backend.
 

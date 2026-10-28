@@ -6,6 +6,10 @@ import hashlib
 import io
 import json
 import platform
+import http.client
+import tempfile
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -29,12 +33,37 @@ SEED = 352
 
 def download(cache: Path, relative: str) -> Path:
     path = cache / relative
-    if not path.exists():
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with urllib.request.urlopen(BASE + relative, timeout=60) as response:
-            data = response.read()
-        path.write_bytes(data)
-    return path
+    if path.exists() and path.stat().st_size > 0:
+        return path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    for attempt in range(5):
+        temporary = None
+        try:
+            with urllib.request.urlopen(BASE + relative, timeout=60) as response:
+                data = response.read()
+                expected = response.headers.get('Content-Length')
+                if expected is not None and len(data) != int(expected):
+                    raise http.client.IncompleteRead(data, max(0, int(expected)-len(data)))
+                if not data:
+                    raise OSError('Empty download')
+            # Close the temporary file before replacement for Windows compatibility.
+            with tempfile.NamedTemporaryFile(dir=path.parent, suffix='.part', delete=False) as handle:
+                temporary = Path(handle.name)
+                handle.write(data)
+            temporary.replace(path)
+            print(f'Downloaded {relative}', flush=True)
+            return path
+        except (http.client.IncompleteRead, OSError) as error:
+            if isinstance(error, urllib.error.HTTPError) and error.code not in (408, 429) and error.code < 500:
+                raise
+            if attempt == 4:
+                raise RuntimeError(f'Download failed after 5 attempts: {relative}. Rerun to reuse completed files.') from error
+            print(f'Retrying {relative} ({attempt+2}/5): {type(error).__name__}', flush=True)
+            time.sleep(2 ** attempt)
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+    raise AssertionError('Unreachable')
 
 
 def load_signal(path: Path, name: str) -> pd.DataFrame:
@@ -200,12 +229,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--cache', type=Path, default=Path('research-cache'))
     parser.add_argument('--output', type=Path, default=Path('research-output'))
+    parser.add_argument('--download-workers', type=int, choices=range(1, 7), default=3)
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     paths = ['README.txt', 'data_constraints.txt', 'LICENSE.txt'] + [
         f'Wearable_Dataset/STRESS/{s}/{n}.csv' for s in SUBJECTS for n in ['HR', 'TEMP', 'ACC']]
     print('Downloading/caching wrist recordings...', flush=True)
-    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=args.download_workers) as pool:
         list(pool.map(lambda p: download(args.cache, p), paths))
     sources = {s: load_subject(args.cache, s) for s in SUBJECTS}
     ids = np.random.default_rng(SEED).permutation(SUBJECTS).tolist()

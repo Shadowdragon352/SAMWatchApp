@@ -1,9 +1,47 @@
 import unittest
 import tempfile
+import io
+import http.client
+from unittest.mock import patch
 from pathlib import Path
 import numpy as np
 import pandas as pd
-from train import FEATURES, generate, quality_reason, select_threshold, interpret, load_signal
+from train import FEATURES, generate, quality_reason, select_threshold, interpret, load_signal, download
+
+
+class DownloadChecks(unittest.TestCase):
+    def response(self, data, length=None):
+        response = io.BytesIO(data)
+        response.headers = {'Content-Length': str(len(data) if length is None else length)}
+        return response
+
+    def test_incomplete_read_retries_and_reuses_complete_cache(self):
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory)
+            with patch('train.urllib.request.urlopen', side_effect=[
+                    http.client.IncompleteRead(b'partial', 20), self.response(b'complete')]) as request, patch('train.time.sleep'):
+                result = download(cache, 'subject/HR.csv')
+                self.assertEqual(result.read_bytes(), b'complete')
+                self.assertEqual(request.call_count, 2)
+                download(cache, 'subject/HR.csv')
+                self.assertEqual(request.call_count, 2)
+                self.assertEqual(list(result.parent.glob('*.part')), [])
+
+    def test_exhausted_retries_never_cache_partial_data(self):
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory)
+            with patch('train.urllib.request.urlopen', side_effect=http.client.IncompleteRead(b'partial', 20)) as request, patch('train.time.sleep'):
+                with self.assertRaisesRegex(RuntimeError, '5 attempts: HR.csv'):
+                    download(cache, 'HR.csv')
+                self.assertEqual(request.call_count, 5)
+            self.assertFalse((cache/'HR.csv').exists())
+            self.assertEqual(list(cache.glob('*.part')), [])
+
+    def test_short_content_length_retries(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch('train.urllib.request.urlopen', side_effect=[
+                    self.response(b'short', 20), self.response(b'complete')]), patch('train.time.sleep'):
+                self.assertEqual(download(Path(directory), 'HR.csv').read_bytes(), b'complete')
 
 
 class TrainingChecks(unittest.TestCase):

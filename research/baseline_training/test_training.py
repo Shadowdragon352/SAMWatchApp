@@ -24,6 +24,7 @@ class TrainingChecks(unittest.TestCase):
                  ('heart_rate_bpm', None, 'invalid_or_missing_sensor'),
                  ('heart_rate_bpm', np.nan, 'invalid_or_missing_sensor'),
                  ('heart_rate_bpm', np.inf, 'invalid_or_missing_sensor'),
+                 ('heart_rate_bpm', 'invalid', 'invalid_or_missing_sensor'),
                  ('heart_rate_bpm', 900, 'invalid_or_missing_sensor'),
                  ('skin_temp_c', -1, 'invalid_or_missing_sensor'),
                  ('movement_rms', -5, 'invalid_or_missing_sensor')]
@@ -32,6 +33,13 @@ class TrainingChecks(unittest.TestCase):
                 row = self.valid()
                 row[field] = value
                 self.assertEqual(quality_reason(row), expected)
+
+    def test_absent_or_invalid_quality_metadata_blocks_interpretation(self):
+        self.assertEqual(quality_reason({}), 'quality_metadata_needed')
+        for field, value in [('worn', 'yes'), ('age_seconds', -1), ('age_seconds', float('nan'))]:
+            row = self.valid()
+            row[field] = value
+            self.assertEqual(quality_reason(row), 'invalid_quality_metadata')
 
     def test_no_flags_allowed_when_no_discrimination(self):
         threshold = select_threshold([0, 0, 1, 1], [.5, .5, .5, .5])

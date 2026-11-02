@@ -65,7 +65,7 @@ def fit_eval(tr, va, evaluation, columns, name, seed):
 
 def save_plot(fig, output, name):
     fig.text(.02, .015, 'EXPLORATORY SYNTHETIC SCENARIOS • not SAD detection accuracy', fontsize=10, color='#555555')
-    fig.tight_layout(rect=[0, .06, 1, .97])
+    fig.tight_layout(rect=[0, .19, 1, .97])
     fig.savefig(output/f'{name}.png', dpi=220, facecolor='white')
     fig.savefig(output/f'{name}.svg', facecolor='white')
     plt.close(fig)
@@ -121,7 +121,7 @@ def main():
         ax.fill_between(stats.index,stats['min']*100,stats['max']*100,color=color,alpha=.15)
     ax.set(title='Does adding synthetic training data help?',xlabel='Synthetic training rows (same 9 real source participants)',ylabel='Evaluation rows (%)',ylim=(0,100))
     ax.legend(loc='center right'); ax.grid(axis='y',alpha=.2)
-    ax.text(.02,.20,'Lines: mean of 3 generator seeds; shading: min–max, not a confidence interval.\nEvaluation data and validation threshold rule stay fixed.',transform=ax.transAxes,fontsize=9)
+    fig.text(.02,.08,'Lines: mean of 3 generator seeds; shading: min–max, not a confidence interval.\nEvaluation data and validation threshold rule stay fixed.',fontsize=8)
     save_plot(fig,out,'01_learning_curve')
 
     strengths=[]
@@ -136,7 +136,7 @@ def main():
     ax.fill_between(stats.index,stats['min']*100,stats['max']*100,color=BLUE,alpha=.15)
     ax.set(title='Subtle scripted changes are harder to detect',xlabel='Injected feature-change multiplier (1 = standard generator)',ylabel='Flags among scripted-positive rows (%)',ylim=(0,100))
     ax.grid(alpha=.2)
-    ax.text(.02,.06,'Multiplier 0: injected change removed; positive rows match their reference pair.\nPaired feature-space interpolation; 3 seeds, min–max band. No clinical severity scale.',transform=ax.transAxes,fontsize=9)
+    fig.text(.02,.08,'Multiplier 0: injected change removed; positive rows match their reference pair.\nPaired feature-space interpolation; 3 seeds, min–max band. No clinical severity scale.',fontsize=8)
     save_plot(fig,out,'02_change_strength')
 
     comparisons=[]
@@ -171,7 +171,7 @@ def main():
     ax.set_yticks(np.arange(len(stats)),[s.replace('_',' ').capitalize() for s in stats.index])
     ax.set(title='Which ordinary-use scenarios cause false flags?',xlabel='Negative-scenario rows flagged (%)',xlim=(0,100))
     ax.grid(axis='x',alpha=.2)
-    ax.text(.02,.05,'Bars: mean of 3 seeds; whiskers: min–max. Repeated scenarios are correlated.\nThese are synthetic case fractions, not false alarms per hour or per real patient.',transform=ax.transAxes,fontsize=9)
+    fig.text(.02,.08,'Bars: mean of 3 seeds; whiskers: min–max. Repeated scenarios are correlated.\nThese are synthetic case fractions, not false alarms per hour or per real patient.',fontsize=8)
     save_plot(fig,out,'04_false_flags')
     checks=quality_checks(); pd.DataFrame(checks).to_csv(out/'quality_checks.csv',index=False)
     source_hashes={str(path.relative_to(args.cache)):hashlib.sha256(path.read_bytes()).hexdigest()

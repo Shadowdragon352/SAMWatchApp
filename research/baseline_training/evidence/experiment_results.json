@@ -1,0 +1,707 @@
+{
+  "purpose": "Exploratory simulation stress testing, not SAD detection",
+  "clinical_validation": false,
+  "split": {
+    "train": [
+      "S16",
+      "S14",
+      "S06",
+      "S05",
+      "S13",
+      "S09",
+      "S04",
+      "S10",
+      "S01"
+    ],
+    "validation": [
+      "S07",
+      "S08",
+      "S15",
+      "S12"
+    ],
+    "exploratory_evaluation": [
+      "S11",
+      "S17",
+      "S03",
+      "S18"
+    ]
+  },
+  "independent_source_participants": 17,
+  "run_seeds": [
+    101,
+    202,
+    303
+  ],
+  "blocks": [
+    1,
+    3,
+    6
+  ],
+  "validation_rows": 1728,
+  "evaluation_rows": 1728,
+  "evaluation_already_inspected": true,
+  "threshold_rule": "Max sensitivity subject to validation row FPR <= 0.05, refit for each candidate",
+  "learning": [
+    {
+      "seed": 101,
+      "train_rows": 1944,
+      "training_source_participants": 9,
+      "auroc": 0.9883449978298611,
+      "average_precision": 0.9860916508053904,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.9557291666666666,
+      "false_positive_fraction": 0.065625,
+      "precision": 0.9209535759096612,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 101,
+      "train_rows": 5832,
+      "training_source_participants": 9,
+      "auroc": 0.9891384548611111,
+      "average_precision": 0.9866608856453825,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.95703125,
+      "false_positive_fraction": 0.06666666666666667,
+      "precision": 0.9198998748435544,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 101,
+      "train_rows": 11664,
+      "training_source_participants": 9,
+      "auroc": 0.9895372178819445,
+      "average_precision": 0.9872347435401184,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.95703125,
+      "false_positive_fraction": 0.057291666666666664,
+      "precision": 0.930379746835443,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 202,
+      "train_rows": 1944,
+      "training_source_participants": 9,
+      "auroc": 0.9885118272569444,
+      "average_precision": 0.9859788205547507,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.93359375,
+      "false_positive_fraction": 0.04479166666666667,
+      "precision": 0.9434210526315789,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 202,
+      "train_rows": 5832,
+      "training_source_participants": 9,
+      "auroc": 0.989693874782986,
+      "average_precision": 0.9872030334241549,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.94921875,
+      "false_positive_fraction": 0.05416666666666667,
+      "precision": 0.9334186939820742,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 202,
+      "train_rows": 11664,
+      "training_source_participants": 9,
+      "auroc": 0.9896484375,
+      "average_precision": 0.9872907848894255,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.953125,
+      "false_positive_fraction": 0.05416666666666667,
+      "precision": 0.9336734693877551,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 303,
+      "train_rows": 1944,
+      "training_source_participants": 9,
+      "auroc": 0.9886277940538195,
+      "average_precision": 0.9858875710128877,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.9505208333333334,
+      "false_positive_fraction": 0.0625,
+      "precision": 0.9240506329113924,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 303,
+      "train_rows": 5832,
+      "training_source_participants": 9,
+      "auroc": 0.9888387044270834,
+      "average_precision": 0.9861415766989489,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.9544270833333334,
+      "false_positive_fraction": 0.065625,
+      "precision": 0.9208542713567839,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 303,
+      "train_rows": 11664,
+      "training_source_participants": 9,
+      "auroc": 0.9887688530815972,
+      "average_precision": 0.986154843344997,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.9609375,
+      "false_positive_fraction": 0.06145833333333333,
+      "precision": 0.9259723964868256,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    }
+  ],
+  "comparison": [
+    {
+      "inputs": "Watch only",
+      "algorithm": "logistic",
+      "auroc": 0.5569417317708334,
+      "average_precision": 0.5366277623049419,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.3385416666666667,
+      "false_positive_fraction": 0.21041666666666667,
+      "precision": 0.5627705627705628,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "inputs": "Watch only",
+      "algorithm": "boosting",
+      "auroc": 0.6814615885416667,
+      "average_precision": 0.6561762705688177,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.19140625,
+      "false_positive_fraction": 0.028125,
+      "precision": 0.8448275862068966,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "inputs": "Synthetic cognition only",
+      "algorithm": "logistic",
+      "auroc": 0.9864773220486112,
+      "average_precision": 0.9834593422480564,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.9140625,
+      "false_positive_fraction": 0.052083333333333336,
+      "precision": 0.9335106382978723,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "inputs": "Synthetic cognition only",
+      "algorithm": "boosting",
+      "auroc": 0.9879204644097221,
+      "average_precision": 0.9849115662682729,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.921875,
+      "false_positive_fraction": 0.05,
+      "precision": 0.9365079365079365,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "inputs": "Combined",
+      "algorithm": "logistic",
+      "auroc": 0.9866292317708334,
+      "average_precision": 0.9836787442312783,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.92578125,
+      "false_positive_fraction": 0.05520833333333333,
+      "precision": 0.930628272251309,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "inputs": "Combined",
+      "algorithm": "boosting",
+      "auroc": 0.9895372178819445,
+      "average_precision": 0.9872347435401184,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.95703125,
+      "false_positive_fraction": 0.057291666666666664,
+      "precision": 0.930379746835443,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    }
+  ],
+  "change_strength": [
+    {
+      "seed": 101,
+      "strength": 0.0,
+      "auroc": 0.42950032552083334,
+      "average_precision": 0.3789334458577991,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.005208333333333333,
+      "false_positive_fraction": 0.057291666666666664,
+      "precision": 0.06779661016949153,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 202,
+      "strength": 0.0,
+      "auroc": 0.42762858072916665,
+      "average_precision": 0.3775108719252177,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.005208333333333333,
+      "false_positive_fraction": 0.05416666666666667,
+      "precision": 0.07142857142857142,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 303,
+      "strength": 0.0,
+      "auroc": 0.42781846788194444,
+      "average_precision": 0.3781875412324883,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.010416666666666666,
+      "false_positive_fraction": 0.06145833333333333,
+      "precision": 0.11940298507462686,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 101,
+      "strength": 0.25,
+      "auroc": 0.8035861545138888,
+      "average_precision": 0.6706890893011331,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.10416666666666667,
+      "false_positive_fraction": 0.057291666666666664,
+      "precision": 0.5925925925925926,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 202,
+      "strength": 0.25,
+      "auroc": 0.7957580566406249,
+      "average_precision": 0.6621352286482973,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.09505208333333333,
+      "false_positive_fraction": 0.05416666666666667,
+      "precision": 0.584,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 303,
+      "strength": 0.25,
+      "auroc": 0.807342529296875,
+      "average_precision": 0.6772901995934805,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.11067708333333333,
+      "false_positive_fraction": 0.06145833333333333,
+      "precision": 0.5902777777777778,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 101,
+      "strength": 0.5,
+      "auroc": 0.9367513020833333,
+      "average_precision": 0.8915947825585663,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.5989583333333334,
+      "false_positive_fraction": 0.057291666666666664,
+      "precision": 0.8932038834951457,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 202,
+      "strength": 0.5,
+      "auroc": 0.9333028157552085,
+      "average_precision": 0.8864045892929561,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.5729166666666666,
+      "false_positive_fraction": 0.05416666666666667,
+      "precision": 0.8943089430894309,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 303,
+      "strength": 0.5,
+      "auroc": 0.9357245551215277,
+      "average_precision": 0.8857110412045902,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.6158854166666666,
+      "false_positive_fraction": 0.06145833333333333,
+      "precision": 0.8890977443609023,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 101,
+      "strength": 0.75,
+      "auroc": 0.9759426540798611,
+      "average_precision": 0.9663269205687156,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.8828125,
+      "false_positive_fraction": 0.057291666666666664,
+      "precision": 0.9249658935879945,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 202,
+      "strength": 0.75,
+      "auroc": 0.9754021538628472,
+      "average_precision": 0.9658840325570068,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.8671875,
+      "false_positive_fraction": 0.05416666666666667,
+      "precision": 0.9275766016713092,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 303,
+      "strength": 0.75,
+      "auroc": 0.9745544433593749,
+      "average_precision": 0.9642406340937667,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.8815104166666666,
+      "false_positive_fraction": 0.06145833333333333,
+      "precision": 0.9198369565217391,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 101,
+      "strength": 1.0,
+      "auroc": 0.9895372178819445,
+      "average_precision": 0.9872347435401184,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.95703125,
+      "false_positive_fraction": 0.057291666666666664,
+      "precision": 0.930379746835443,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 202,
+      "strength": 1.0,
+      "auroc": 0.9896484375,
+      "average_precision": 0.9872907848894255,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.953125,
+      "false_positive_fraction": 0.05416666666666667,
+      "precision": 0.9336734693877551,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 303,
+      "strength": 1.0,
+      "auroc": 0.9887688530815972,
+      "average_precision": 0.986154843344997,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.9609375,
+      "false_positive_fraction": 0.06145833333333333,
+      "precision": 0.9259723964868256,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 101,
+      "strength": 1.25,
+      "auroc": 0.9947584364149306,
+      "average_precision": 0.9939864527063522,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.9739583333333334,
+      "false_positive_fraction": 0.057291666666666664,
+      "precision": 0.9315068493150684,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 202,
+      "strength": 1.25,
+      "auroc": 0.9950968424479167,
+      "average_precision": 0.9942976529158843,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.9765625,
+      "false_positive_fraction": 0.05416666666666667,
+      "precision": 0.9351620947630923,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    },
+    {
+      "seed": 303,
+      "strength": 1.25,
+      "auroc": 0.994363064236111,
+      "average_precision": 0.9934544928623574,
+      "scripted_positive_fraction": 0.4444444444444444,
+      "sensitivity": 0.9713541666666666,
+      "false_positive_fraction": 0.06145833333333333,
+      "precision": 0.9267080745341615,
+      "unmodified_or_confounder_subjects_with_any_flag": 1.0,
+      "rows": 1728,
+      "subjects": 4
+    }
+  ],
+  "false_flags": [
+    {
+      "seed": 101,
+      "scenario": "activity_context",
+      "rows": 192,
+      "flag_fraction": 0.005208333333333333,
+      "source_participants_with_any_flag": 0.25
+    },
+    {
+      "seed": 101,
+      "scenario": "rest_context",
+      "rows": 192,
+      "flag_fraction": 0.005208333333333333,
+      "source_participants_with_any_flag": 0.25
+    },
+    {
+      "seed": 101,
+      "scenario": "task_noise",
+      "rows": 192,
+      "flag_fraction": 0.2708333333333333,
+      "source_participants_with_any_flag": 1.0
+    },
+    {
+      "seed": 101,
+      "scenario": "temperature_context",
+      "rows": 192,
+      "flag_fraction": 0.0,
+      "source_participants_with_any_flag": 0.0
+    },
+    {
+      "seed": 101,
+      "scenario": "unmodified",
+      "rows": 192,
+      "flag_fraction": 0.005208333333333333,
+      "source_participants_with_any_flag": 0.25
+    },
+    {
+      "seed": 202,
+      "scenario": "activity_context",
+      "rows": 192,
+      "flag_fraction": 0.0,
+      "source_participants_with_any_flag": 0.0
+    },
+    {
+      "seed": 202,
+      "scenario": "rest_context",
+      "rows": 192,
+      "flag_fraction": 0.0,
+      "source_participants_with_any_flag": 0.0
+    },
+    {
+      "seed": 202,
+      "scenario": "task_noise",
+      "rows": 192,
+      "flag_fraction": 0.265625,
+      "source_participants_with_any_flag": 1.0
+    },
+    {
+      "seed": 202,
+      "scenario": "temperature_context",
+      "rows": 192,
+      "flag_fraction": 0.0,
+      "source_participants_with_any_flag": 0.0
+    },
+    {
+      "seed": 202,
+      "scenario": "unmodified",
+      "rows": 192,
+      "flag_fraction": 0.005208333333333333,
+      "source_participants_with_any_flag": 0.25
+    },
+    {
+      "seed": 303,
+      "scenario": "activity_context",
+      "rows": 192,
+      "flag_fraction": 0.005208333333333333,
+      "source_participants_with_any_flag": 0.25
+    },
+    {
+      "seed": 303,
+      "scenario": "rest_context",
+      "rows": 192,
+      "flag_fraction": 0.005208333333333333,
+      "source_participants_with_any_flag": 0.25
+    },
+    {
+      "seed": 303,
+      "scenario": "task_noise",
+      "rows": 192,
+      "flag_fraction": 0.2864583333333333,
+      "source_participants_with_any_flag": 1.0
+    },
+    {
+      "seed": 303,
+      "scenario": "temperature_context",
+      "rows": 192,
+      "flag_fraction": 0.0,
+      "source_participants_with_any_flag": 0.0
+    },
+    {
+      "seed": 303,
+      "scenario": "unmodified",
+      "rows": 192,
+      "flag_fraction": 0.010416666666666666,
+      "source_participants_with_any_flag": 0.5
+    }
+  ],
+  "quality_checks": [
+    {
+      "case": "Correct use",
+      "expected": "allow",
+      "actual": "allow",
+      "passed": true
+    },
+    {
+      "case": "Watch removed",
+      "expected": "watch_not_worn",
+      "actual": "watch_not_worn",
+      "passed": true
+    },
+    {
+      "case": "Stale readings",
+      "expected": "stale_data",
+      "actual": "stale_data",
+      "passed": true
+    },
+    {
+      "case": "Task abandoned",
+      "expected": "task_incomplete",
+      "actual": "task_incomplete",
+      "passed": true
+    },
+    {
+      "case": "Rapid tapping",
+      "expected": "task_quality_problem",
+      "actual": "task_quality_problem",
+      "passed": true
+    },
+    {
+      "case": "Missing reading",
+      "expected": "invalid_or_missing_sensor",
+      "actual": "invalid_or_missing_sensor",
+      "passed": true
+    },
+    {
+      "case": "Impossible reading",
+      "expected": "invalid_or_missing_sensor",
+      "actual": "invalid_or_missing_sensor",
+      "passed": true
+    },
+    {
+      "case": "Missing baseline",
+      "expected": "reference_needed",
+      "actual": "reference_needed",
+      "passed": true
+    }
+  ],
+  "source": "Hongn et al. (2025), PhysioNet wearable-device-dataset 1.0.1, DOI:10.13026/he0v-tf17; ODC-By",
+  "source_hashes": {
+    "Wearable_Dataset/STRESS/S01/ACC.csv": "2acceb15ff741153b0ca287ec3f47e2d58a53150335aad525e3ff0e89d7a1ee8",
+    "Wearable_Dataset/STRESS/S01/HR.csv": "47cb96ae9f63cd53378250093b107a2d2e356dab4c9f44cde8e86ae233b4feaa",
+    "Wearable_Dataset/STRESS/S01/TEMP.csv": "f649e28f74990e220a2cf29972e95d1233334cf81b7c0f668e5e59774f1799c2",
+    "Wearable_Dataset/STRESS/S03/ACC.csv": "c9870317ed52c76004a3cf370ab887932953dedfceed2570b11bbf475eec3b11",
+    "Wearable_Dataset/STRESS/S03/HR.csv": "de8fab82874d20cf46c5fe7766110f8c25886b23821c0ed251f7bb8c9889982d",
+    "Wearable_Dataset/STRESS/S03/TEMP.csv": "a3ad56714f911fcee9dbf7377c8893cce32f5b99b6257bc28a6ef742c4591a37",
+    "Wearable_Dataset/STRESS/S04/ACC.csv": "ecd3f8514d135778f4d3db4f60e0460eb76e1fbeb7fbe62c833304d077c0ea3b",
+    "Wearable_Dataset/STRESS/S04/HR.csv": "cb96af0fd662919c0186199d59f79375a6a4d6bdd5f0df7e9ed4d40fc0b038a5",
+    "Wearable_Dataset/STRESS/S04/TEMP.csv": "c11c8eb39dd1a4a89fede268766e9cda68b8c54238f64f8cde01d8e0b66af9e2",
+    "Wearable_Dataset/STRESS/S05/ACC.csv": "af67c4ede93e62c9ab9b8681eea246600a3cfb14390411890ea45a5ab93c3211",
+    "Wearable_Dataset/STRESS/S05/HR.csv": "6fd321ddd9292fa20e7b7e67dc7c919cc6b9dfbd06e85cb132d0845a9956843f",
+    "Wearable_Dataset/STRESS/S05/TEMP.csv": "5725f85c6685ccc87599e0aa6ec5927e3c90513dfb7b585216fd3c17556bff02",
+    "Wearable_Dataset/STRESS/S06/ACC.csv": "bd2de1dc108786618bc31300a66a73e608eee3ada2e36047c5e7ba4fb500249b",
+    "Wearable_Dataset/STRESS/S06/HR.csv": "556386ab8d58ff9247074213c0c20bff73cee4a3a61d037bcd76b2ccd579d953",
+    "Wearable_Dataset/STRESS/S06/TEMP.csv": "5f3aaf1910fc7680c00f489cabca27ff9d0d79ad59dd49b1570b134535635b9c",
+    "Wearable_Dataset/STRESS/S07/ACC.csv": "ff61cc9cb162d1ee3280be478174a11b630e133af054fc0a6329e3208984d54b",
+    "Wearable_Dataset/STRESS/S07/HR.csv": "1360f13c00a6011fa7c19fd6e5d92a2ab1e165a2b2585da06e9b7ccd523e881d",
+    "Wearable_Dataset/STRESS/S07/TEMP.csv": "528de10073c355ba6c443b4cf9229563325dd5bb9ab69ea48432165b9cf318d9",
+    "Wearable_Dataset/STRESS/S08/ACC.csv": "bd2c5ddf8385d4f22de1661c76ed6d98712e7ed26760ad8928c640beead5a42e",
+    "Wearable_Dataset/STRESS/S08/HR.csv": "054da64e5331b2e5eff021be39c33e190c2ff9250830a3eda1168d3694b6d84f",
+    "Wearable_Dataset/STRESS/S08/TEMP.csv": "5334b4ce73f1eb61169d8fe35dfd4ee1c9fee030cd933867fa7570fcc71ba048",
+    "Wearable_Dataset/STRESS/S09/ACC.csv": "f7e7b7168071bf987af76659172f4059036b460a472590d9232a0802768206e0",
+    "Wearable_Dataset/STRESS/S09/HR.csv": "174a1ec0b1d4ad619ad482fd4f44a415c10e804bd1587b573478947cd16a99e4",
+    "Wearable_Dataset/STRESS/S09/TEMP.csv": "ed20d723cf93152baee18987e19794dcb0c84b990950d2c6f59be47fc9d0c299",
+    "Wearable_Dataset/STRESS/S10/ACC.csv": "75653c0d5baebecc549a40d6bae657be10817948cfcf6c9ca8883a7add86e85b",
+    "Wearable_Dataset/STRESS/S10/HR.csv": "760f154e9b8a5b11392073e1ea7db3c17d46623be284f67f0a497af62330dbc1",
+    "Wearable_Dataset/STRESS/S10/TEMP.csv": "e2dc7a10dd99812fd0fdc0129d07c699773ca0984e6430a66440c06c9a0ea7a0",
+    "Wearable_Dataset/STRESS/S11/ACC.csv": "a355bbcdb920a6f52bb2a34b5d7aff6e6aeafa12ea51d81e06cd10d1f7dd10bf",
+    "Wearable_Dataset/STRESS/S11/HR.csv": "7b466cf56a2b7222d376afb5b9ff2eaa15ba2ea087d7f46f442af66eaa006d48",
+    "Wearable_Dataset/STRESS/S11/TEMP.csv": "6859cf9c63ffcbcb18adb61f44ff4da7577051868be39282b620c4bcc65c3194",
+    "Wearable_Dataset/STRESS/S12/ACC.csv": "c97a8b7dbf00e538f500dda1323d012bde236952dfff8d8dfa4b9c83431ecb32",
+    "Wearable_Dataset/STRESS/S12/HR.csv": "09bbaabf6c800d9a23263a7725a6ece7eba913ab92dcafda59efbf81119cbcce",
+    "Wearable_Dataset/STRESS/S12/TEMP.csv": "901587d37ebf6ae428e89d2343ecd20d951706b011d28897c7e2b7e9d780ccf0",
+    "Wearable_Dataset/STRESS/S13/ACC.csv": "c1bfd80ba3236dd51ed896b701b40af00160c9e639fe4144e2fff1838787858a",
+    "Wearable_Dataset/STRESS/S13/HR.csv": "10c913c27d4b0cacc5cdb2b65576e8041e9e6c07dac5d477aad2cfc652222ba3",
+    "Wearable_Dataset/STRESS/S13/TEMP.csv": "d55819e4262e2bb261442bc56b81f131aace45fac4d5f4d0cede3be39a59878a",
+    "Wearable_Dataset/STRESS/S14/ACC.csv": "b598da6d312c9281abaf0678ee2339bf1cba665851bc87ce9da09f99496af942",
+    "Wearable_Dataset/STRESS/S14/HR.csv": "2a392d9aabae426d4feda7aeeab2ec27bc04314f045734cbc2e2bdc0184e7b92",
+    "Wearable_Dataset/STRESS/S14/TEMP.csv": "d68200f46df6d176b59e66937c1d1314226b3d494086a93b4f51222ead6b0a33",
+    "Wearable_Dataset/STRESS/S15/ACC.csv": "1796df3dd4682cfc2878a9167feeae18d146ec2a420400e396d7054342d8d164",
+    "Wearable_Dataset/STRESS/S15/HR.csv": "4a4333956afec109e4ea4f82496080c2247d1a4fa4c20ed8a120d0ba3e6676a1",
+    "Wearable_Dataset/STRESS/S15/TEMP.csv": "51dd02c9f381aeadd02e917f8041ff745fdea97de999ebf4eaa6835eff75854f",
+    "Wearable_Dataset/STRESS/S16/ACC.csv": "114a20e71e62fbc8514912939245cd75a9d0e385176fcecdc9db40aac67d36a2",
+    "Wearable_Dataset/STRESS/S16/HR.csv": "c87383103d7397bd5d523b32a1d99086138d0e5320f0e53464e33194fb8ecd67",
+    "Wearable_Dataset/STRESS/S16/TEMP.csv": "21ec8973ab2cb5ae387a06943b4ddecad57bf0b5953eec6e01e19fbc79c5f186",
+    "Wearable_Dataset/STRESS/S17/ACC.csv": "ec74455c735f7c01a22c812345ed4f2ee2d01f06cc1b88fe603039d3698a67f5",
+    "Wearable_Dataset/STRESS/S17/HR.csv": "9e50a7a033c18325f81476183728f56048e4e11d4fb85b73ea7d2ad80abf6c4a",
+    "Wearable_Dataset/STRESS/S17/TEMP.csv": "996abd19e39616ac0d4d58dfd61e7085964fcfee50afa95b619aba03bed93f17",
+    "Wearable_Dataset/STRESS/S18/ACC.csv": "94f30cb57b080fe97519dee2f365eb7f60ed516e09835f40efa61a8212d66318",
+    "Wearable_Dataset/STRESS/S18/HR.csv": "eaac1fb914ae814e4d2d116b8c365c63741a4f9d8d346645cefaa03ef7b8c17d",
+    "Wearable_Dataset/STRESS/S18/TEMP.csv": "4dccf0f953c3011ea8db724ddf1f92c60641cf75afbcb92c803d04c0962e5702"
+  },
+  "limitations": [
+    "Reference windows unlabelled, not confirmed healthy.",
+    "All cognition and injected changes are invented. Recognition mostly reflects generator assumptions.",
+    "Same 17 real source participants; more rows do not add independent people.",
+    "Evaluation source participants already inspected previously: exploratory reuse, not an untouched final test.",
+    "Seed ranges are not confidence intervals or clinical uncertainty estimates.",
+    "Quality metadata are supplied explicitly; automated non-wear/tapping detection is not established."
+  ]
+}

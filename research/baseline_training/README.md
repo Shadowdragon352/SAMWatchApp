@@ -68,3 +68,15 @@ Android build, real watch collection, sensor accuracy, battery, on-device wear d
 2. Replace invented cognition distributions with consented task recordings, preserving incomplete/declined tasks separately from poor performance.
 3. Expand simulator families with explicitly documented assumptions; freeze new validation/test source participants before further tuning. The current test cohort has now been inspected and must not be repeatedly used to select models.
 4. Train and evaluate clinical SAD detection only with suitable timestamped clinician reference outcomes and a prespecified patient-level evaluation protocol. Do not infer clinical labels from heart rate or from the watch game itself.
+
+## Presentation experiments
+
+`experiments.py` adds a synthetic learning curve, paired change-strength stress test, six input/model comparisons, negative-scenario false flags and eight explicit quality-gate cases. It deliberately reuses the previously inspected source split and labels every result exploratory. More generated rows are not independent participants. It does not select a new model for deployment.
+
+```powershell
+python -m pip install -r research/baseline_training/experiment-requirements.txt
+$env:OMP_NUM_THREADS = "2"
+python research/baseline_training/experiments.py --cache research-cache --output experiment-output
+```
+
+Use the original `train.py` first if the cache is absent. Outputs include four PNG/SVG graphs, CSV measurements, source hashes and `READ_ME_FIRST.md` with presentation wording and limitations. Across all three seeds, the same fixed validation and exploratory evaluation banks are used. Seed min–max bands are not confidence intervals.

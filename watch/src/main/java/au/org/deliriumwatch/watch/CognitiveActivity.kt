@@ -93,23 +93,6 @@ class CognitiveActivity : Activity(){
     }
 
 
-    override fun onPause(){
-        super.onPause()
-        if(
-            stage in listOf("attention","one_back","one_back_intro")) {
-                trialGate.cancel();handler.removeCallbacksAndMessages(null);stage="interrupted"
-                title.text="Check interrupted"
-            stimulus.text="";setButtons(button("Close"){finish()
-            })
-                store("cognition_prompt_outcome",
-                    System.currentTimeMillis(),
-                    JSONObject()
-                    .put("outcome","interrupted")
-                    .put("session_id",sessionId)
-                    .put("prompt_id",promptId))
-        }
-    }
-
     override fun onPause() {
         super.onPause()
 
@@ -476,20 +459,6 @@ class CognitiveActivity : Activity(){
         controls.removeAllViews()
         showOneBackPrime()
     }
-
-    private fun showOneBackPrime() {
-        title.text = "Remember this shape"
-        stimulus.text = oneBackSeq[0]
-
-        handler.postDelayed(
-            {
-                idx = 1
-                nextOneBack()
-            },
-            1500
-        )
-    }
-
 
     private fun showOneBackPrime() {
         title.text = "Remember this shape"

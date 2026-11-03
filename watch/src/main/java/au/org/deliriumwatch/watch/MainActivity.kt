@@ -41,6 +41,14 @@ class MainActivity : Activity() {
         fun button(value: String, action: () -> Unit) {
             root.addView(Button(this).apply {
                 text = value; textSize = 13f; isAllCaps = false
+                minimumWidth = 0
+                minWidth = 0
+                minimumHeight = WatchUi.dp(this@MainActivity, 48f)
+                minHeight = WatchUi.dp(this@MainActivity, 48f)
+                maxLines = 2
+                gravity = Gravity.CENTER
+                setPadding(WatchUi.dp(this@MainActivity, 4f), WatchUi.dp(this@MainActivity, 6f),
+                    WatchUi.dp(this@MainActivity, 4f), WatchUi.dp(this@MainActivity, 6f))
                 setOnClickListener { action() }
             }, LinearLayout.LayoutParams(-1, -2))
         }

@@ -1,0 +1,16 @@
+seed,scenario,rows,flag_fraction,source_participants_with_any_flag
+101,activity_context,192,0.005208333333333333,0.25
+101,rest_context,192,0.005208333333333333,0.25
+101,task_noise,192,0.2708333333333333,1.0
+101,temperature_context,192,0.0,0.0
+101,unmodified,192,0.005208333333333333,0.25
+202,activity_context,192,0.0,0.0
+202,rest_context,192,0.0,0.0
+202,task_noise,192,0.265625,1.0
+202,temperature_context,192,0.0,0.0
+202,unmodified,192,0.005208333333333333,0.25
+303,activity_context,192,0.005208333333333333,0.25
+303,rest_context,192,0.005208333333333333,0.25
+303,task_noise,192,0.2864583333333333,1.0
+303,temperature_context,192,0.0,0.0
+303,unmodified,192,0.010416666666666666,0.5

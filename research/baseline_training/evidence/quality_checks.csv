@@ -1,0 +1,9 @@
+case,expected,actual,passed
+Correct use,allow,allow,True
+Watch removed,watch_not_worn,watch_not_worn,True
+Stale readings,stale_data,stale_data,True
+Task abandoned,task_incomplete,task_incomplete,True
+Rapid tapping,task_quality_problem,task_quality_problem,True
+Missing reading,invalid_or_missing_sensor,invalid_or_missing_sensor,True
+Impossible reading,invalid_or_missing_sensor,invalid_or_missing_sensor,True
+Missing baseline,reference_needed,reference_needed,True

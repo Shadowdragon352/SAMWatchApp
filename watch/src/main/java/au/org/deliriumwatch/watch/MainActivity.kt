@@ -62,8 +62,23 @@ class MainActivity : Activity() {
         button("Cognitive check") { startActivity(Intent(this, CognitiveActivity::class.java)) }
         button("Sync recordings") {
             WatchTransport.flush(this) { ok, _ ->
-                runOnUiThread { toast(if (ok) "Recordings sent to phone" else "Not synced yet. Recordings remain saved on this watch."); updateStatus() }
+                runOnUiThread { toast(if (ok) "Sync complete" else "Not synced yet. Recordings remain saved on this watch."); updateStatus() }
             }
+        }
+        button("Show upload device ID") {
+            val id = runCatching {
+                WatchDb(this).use { db ->
+                    db.pendingForMessage().firstOrNull()?.let {
+                        org.json.JSONObject(it.payload).optString("device_id")
+                    }
+                }
+            }.getOrNull()
+            android.app.AlertDialog.Builder(this)
+                .setTitle("Upload device ID")
+                .setMessage(id?.takeIf { it.isNotBlank() }
+                    ?: "Start recording and wait for a reading, then try again.")
+                .setPositiveButton("OK", null)
+                .show()
         }
         button("Sensor permissions") {
             val missing = WatchPermissions.foreground(this)

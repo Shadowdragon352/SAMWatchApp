@@ -5,8 +5,9 @@ import org.json.JSONObject
 
 class WatchPrefs(context: Context) {
     private val p = context.getSharedPreferences("watch_config", Context.MODE_PRIVATE)
+    private val direct = context.getSharedPreferences("direct_upload", Context.MODE_PRIVATE)
     var studyId: String
-        get() = p.getString("study_id", "UNASSIGNED") ?: "UNASSIGNED"
+        get() = direct.getString("study_id", null) ?: p.getString("study_id", "UNASSIGNED") ?: "UNASSIGNED"
         set(v) = p.edit().putString("study_id", v.ifBlank { "UNASSIGNED" }).apply()
     var patientName: String
         get() = p.getString("patient_name", "") ?: ""

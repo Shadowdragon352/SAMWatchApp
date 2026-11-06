@@ -30,11 +30,12 @@ class WatchDb(context: Context) : SQLiteOpenHelper(context, "watch_events.db", n
     }
 
     @Synchronized
-    fun pendingForMessage(maxEvents: Int=100, maxBytes: Int=48_000): List<QueuedEvent> {
+    fun pendingForMessage(maxEvents: Int=100, maxBytes: Int=48_000, studyId: String? = null): List<QueuedEvent> {
         val out=mutableListOf<QueuedEvent>(); var bytes=120
-        readableDatabase.query("events", arrayOf("id","payload"), "sent=0", null,null,null,"id ASC",maxEvents.toString()).use { c ->
-            while(c.moveToNext()) {
+        readableDatabase.query("events", arrayOf("id","payload"), "sent=0", null,null,null,"id ASC",(if (studyId == null) maxEvents.toString() else null)).use { c ->
+            while(out.size < maxEvents && c.moveToNext()) {
                 val item=QueuedEvent(c.getLong(0),c.getString(1)); val next=item.payload.toByteArray(Charsets.UTF_8).size+2
+                if (studyId != null && org.json.JSONObject(item.payload).optString("study_id") != studyId) continue
                 if(out.isNotEmpty() && bytes+next>maxBytes) break
                 out+=item; bytes+=next
             }
